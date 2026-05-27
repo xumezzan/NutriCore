@@ -222,15 +222,9 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-brand-bg/85 backdrop-blur-md border-b border-brand-border tg-pt-safe">
         <div className="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
           
-          {/* Brand block representing Apple + Uber cleanliness */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-black font-extrabold select-none text-sm shadow-md shadow-brand-primary/10 active:scale-95 transition-transform">
-              NC
-            </div>
-            <div className="text-left">
-              <h1 className="text-sm font-bold text-white tracking-tight leading-none uppercase">NutriCore AI</h1>
-              <span className="text-[9px] text-brand-primary font-bold tracking-widest font-mono select-none">UNICORN PRO</span>
-            </div>
+          {/* Brand block */}
+          <div className="flex items-center">
+            <img src="/logo-lockup.svg" alt="NutriCore AI" className="h-9 w-auto select-none" draggable={false} />
           </div>
 
           {/* Languages switch + specs fast link */}
@@ -274,19 +268,17 @@ export default function App() {
       <main className="flex-1 w-full max-w-md mx-auto px-4 py-5 scroll-smooth">
         {!splashDone ? (
           <div className="min-h-[75vh] flex flex-col items-center justify-center gap-8 animate-fade-in">
+            {/* Logo icon */}
             <div className="relative">
-              <div className="w-24 h-24 rounded-3xl bg-brand-primary flex items-center justify-center text-black font-extrabold text-3xl shadow-2xl shadow-brand-primary/40">
-                NC
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-primary rounded-full animate-ping opacity-60" />
+              <img src="/logo-icon.svg" alt="NutriCore" className="w-24 h-24 select-none drop-shadow-2xl" draggable={false} />
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5BA300] rounded-full animate-ping opacity-70" />
             </div>
 
             <div className="text-center space-y-2">
-              <p className="text-[10px] text-brand-primary font-mono uppercase tracking-widest">NutriCore AI · Unicorn Pro</p>
               {tg?.initDataUnsafe?.user?.first_name ? (
                 <h2 className="text-2xl font-black text-white leading-tight">
                   {language === "uz" ? "Xush kelibsiz" : "Добро пожаловать"},{" "}
-                  <span className="text-brand-primary">{tg.initDataUnsafe.user.first_name}</span>!
+                  <span style={{ color: "#5BA300" }}>{tg.initDataUnsafe.user.first_name}</span>!
                 </h2>
               ) : (
                 <h2 className="text-2xl font-black text-white">NutriCore AI</h2>
