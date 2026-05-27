@@ -6,7 +6,9 @@ interface NutritionCoachProps {
   profile: UserProfile;
   language: AppLanguage;
   messages: CoachMessage[];
+  mealLogs: { calories: number; protein: number; healthScore: number; timestamp: string }[];
   onSendMessage: (text: string) => Promise<void>;
+  onInjectCoachMessage: (text: string) => void;
   isThinking: boolean;
 }
 
@@ -14,7 +16,9 @@ export default function NutritionCoach({
   profile,
   language,
   messages,
+  mealLogs,
   onSendMessage,
+  onInjectCoachMessage,
   isThinking
 }: NutritionCoachProps) {
   const [inputText, setInputText] = useState("");
@@ -109,6 +113,32 @@ export default function NutritionCoach({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
+
+  // Weekly digest — fires once per Sunday when Coach tab is opened
+  useEffect(() => {
+    const now = new Date();
+    const isSunday = now.getDay() === 0;
+    if (!isSunday) return;
+
+    const weekKey = `nc_weekly_digest_${now.getFullYear()}_${now.getMonth()}_${Math.floor(now.getDate() / 7)}`;
+    if (localStorage.getItem(weekKey)) return;
+
+    // Need at least 3 logs to generate a meaningful digest
+    if (mealLogs.length < 3) return;
+
+    const totalCal = mealLogs.reduce((s, m) => s + m.calories, 0);
+    const avgCal = Math.round(totalCal / 7);
+    const avgProtein = Math.round(mealLogs.reduce((s, m) => s + m.protein, 0) / mealLogs.length);
+    const avgScore = Math.round(mealLogs.reduce((s, m) => s + m.healthScore, 0) / mealLogs.length);
+    const bestScore = Math.max(...mealLogs.map((m) => m.healthScore));
+
+    const text = language === "uz"
+      ? `📊 *Haftalik xulosa*\n\nBu hafta ${mealLogs.length} ta ovqat kiritdingiz.\nO'rtacha kunlik kaloriya: ${avgCal} kkal.\nO'rtacha oqsil: ${avgProtein}g.\nO'rtacha salomatlik balli: ${avgScore}/100.\nEng yaxshi natija: ${bestScore}/100.\n\nKeyingi hafta uchun maslahat so'rashni xohlaysizmi?`
+      : `📊 *Итоги недели*\n\nЗа эту неделю добавлено ${mealLogs.length} приёмов пищи.\nСредние калории в день: ${avgCal} ккал.\nСредний белок: ${avgProtein}г.\nСредний health score: ${avgScore}/100.\nЛучший результат: ${bestScore}/100.\n\nХочешь план питания на следующую неделю?`;
+
+    onInjectCoachMessage(text);
+    localStorage.setItem(weekKey, "1");
+  }, []);
 
   const handleInputFocus = () => {
     // Give the keyboard time to open, then scroll the input into view

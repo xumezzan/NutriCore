@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { UserProfile, MealLog, CoachMessage, AppLanguage } from "./types";
-import Dashboard from "./components/Dashboard";
+import Home from "./components/Home";
+import Diary from "./components/Diary";
 import Scanner from "./components/Scanner";
 import NutritionCoach from "./components/NutritionCoach";
 import Profile from "./components/Profile";
@@ -9,12 +10,11 @@ import SpotlightTour from "./components/SpotlightTour";
 import { storage, getTelegramLanguage, apiFetch, tg } from "./telegram";
 
 import {
-  Flame,
-  Scan,
+  Home as HomeIcon,
+  BookOpen,
   MessageSquare,
-  User,
-  ShieldCheck,
-  Sparkles
+  Scan,
+  Sparkles,
 } from "lucide-react";
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -29,7 +29,17 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scanner" | "coach" | "profile">("dashboard");
+  const [activeTab, setActiveTab] = useState<"home" | "dashboard" | "scanner" | "coach" | "profile">("home");
+  const [scanMode, setScanMode] = useState<"camera" | "voice" | "text">("voice");
+  const [scanPrefill, setScanPrefill] = useState<string | undefined>(undefined);
+
+  // Clear prefill once Scanner mounts and has consumed it
+  useEffect(() => {
+    if (activeTab === "scanner" && scanPrefill) {
+      const t = setTimeout(() => setScanPrefill(undefined), 300);
+      return () => clearTimeout(t);
+    }
+  }, [activeTab, scanPrefill]);
   const [language, setLanguage] = useState<AppLanguage>(() => getTelegramLanguage() ?? "ru");
   const [showTour, setShowTour] = useState<boolean>(false);
 
@@ -118,6 +128,17 @@ export default function App() {
   // Delete logged items
   const handleDeleteLog = (id: string) => {
     setMealLogs(mealLogs.filter(log => log.id !== id));
+  };
+
+  // Inject a coach message directly (used by weekly digest)
+  const handleInjectCoachMessage = (text: string) => {
+    const msg: CoachMessage = {
+      id: "coach_inject_" + Date.now(),
+      role: "coach",
+      text,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages((prev) => [...prev, msg]);
   };
 
   // Add a newly scanned item to the logged meal calendar list
@@ -211,11 +232,6 @@ export default function App() {
     }
   };
 
-  // Switch tabs programmatically
-  const navigateToScanTab = () => {
-    setActiveTab("scanner");
-  };
-
   return (
     <div className={`min-h-screen bg-brand-bg text-[#F5F5F7] font-sans flex flex-col justify-between selection:bg-brand-primary/30 selection:text-white ${profile.onboarded ? "pb-24" : ""}`}>
       {/* Top Navigation Frame */}
@@ -254,11 +270,21 @@ export default function App() {
               </button>
             </div>
 
-            {/* Shield system badge to verify sandbox vs real */}
-            <div className="p-1 px-1.5 bg-brand-panel rounded-lg border border-brand-border-light text-[10px] text-[#888] flex items-center gap-1 font-mono">
-              <ShieldCheck className="w-3.5 h-3.5 text-brand-primary" />
-              <span>OK</span>
-            </div>
+            {/* Avatar — entry to Profile */}
+            <button
+              onClick={() => setActiveTab("profile")}
+              aria-label="profile"
+              className={`relative w-9 h-9 rounded-full overflow-hidden flex items-center justify-center transition-all active:scale-95 ${
+                activeTab === "profile"
+                  ? "ring-2 ring-brand-primary"
+                  : "ring-1 ring-white/10 hover:ring-white/20"
+              }`}
+              style={{ background: "linear-gradient(135deg, #1B1B20 0%, #131316 100%)" }}
+            >
+              <span className="text-[12px] font-bold text-white">
+                {(tg?.initDataUnsafe?.user?.first_name?.[0] ?? "U").toUpperCase()}
+              </span>
+            </button>
 
           </div>
         </div>
@@ -314,9 +340,29 @@ export default function App() {
             }}
           />
         ) : (
-          <>
+          <div key={activeTab} className="animate-fade-in">
+            {activeTab === "home" && (
+              <Home
+                mealLogs={mealLogs}
+                targetCalories={targets.calories}
+                targetProtein={targets.protein}
+                targetFat={targets.fat}
+                targetCarbs={targets.carbs}
+                language={language}
+                onOpenScanner={(mode, prefill) => {
+                  if (mode === "photo") setScanMode("camera");
+                  else if (mode === "voice") setScanMode("voice");
+                  else setScanMode("text");
+                  if (prefill) setScanPrefill(prefill);
+                  setActiveTab("scanner");
+                }}
+                onNavigateToDiary={() => setActiveTab("dashboard")}
+                onNavigateToCoach={() => setActiveTab("coach")}
+              />
+            )}
+
             {activeTab === "dashboard" && (
-              <Dashboard
+              <Diary
                 mealLogs={mealLogs}
                 onDeleteLog={handleDeleteLog}
                 targetCalories={targets.calories}
@@ -324,7 +370,6 @@ export default function App() {
                 targetFat={targets.fat}
                 targetCarbs={targets.carbs}
                 language={language}
-                onNavigateToScan={navigateToScanTab}
               />
             )}
 
@@ -333,6 +378,8 @@ export default function App() {
                 profile={profile}
                 language={language}
                 onAddMealLog={handleAddMealLog}
+                initialMode={scanMode}
+                initialText={scanPrefill}
               />
             )}
 
@@ -341,7 +388,9 @@ export default function App() {
                 profile={profile}
                 language={language}
                 messages={messages}
+                mealLogs={mealLogs}
                 onSendMessage={handleSendMessage}
+                onInjectCoachMessage={handleInjectCoachMessage}
                 isThinking={isThinking}
               />
             )}
@@ -354,66 +403,99 @@ export default function App() {
                 onStartTour={() => setShowTour(true)}
               />
             )}
-          </>
+          </div>
         )}
       </main>
 
-      {/* Persistent Bottom Utility Tab Navigator */}
+      {/* Floating Scan FAB — primary product CTA */}
       {profile.onboarded && (
-        <nav id="bottom_nav_bar" className="fixed bottom-0 left-0 right-0 z-50 bg-brand-bg/95 backdrop-blur-lg border-t border-brand-border py-2.5 tg-pb-safe">
-        <div className="max-w-md mx-auto px-3.5 grid grid-cols-4 gap-0.5">
-          
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "dashboard" 
-                ? "text-brand-primary font-bold" 
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
+        <button
+          id="nav_scanner_tab"
+          onClick={() => {
+            try { tg?.HapticFeedback?.impactOccurred?.("medium"); } catch {}
+            setScanMode("camera");
+            setActiveTab("scanner");
+          }}
+          aria-label="scan"
+          className="fixed left-1/2 z-[55] no-select animate-fab-float"
+          style={{
+            bottom: "calc(52px + max(var(--tg-safe-bottom), env(safe-area-inset-bottom)))",
+            transform: "translateX(-50%)",
+          }}
+        >
+          {/* Outer ambient glow — blurred halo */}
+          <span
+            className="absolute inset-[-6px] rounded-full blur-xl pointer-events-none"
+            style={{ background: "rgba(0,229,119,0.3)" }}
+          />
+          {/* Button face */}
+          <span
+            className="relative flex items-center justify-center w-[60px] h-[60px] rounded-full active:scale-90 transition-transform duration-150"
+            style={{
+              background: "linear-gradient(180deg, #00FF85 0%, #00C964 100%)",
+              boxShadow:
+                "0 0 0 3.5px rgba(10,10,11,0.97), 0 8px 20px rgba(0,229,119,0.4), inset 0 1px 0 rgba(255,255,255,0.45)",
+            }}
           >
-            <Flame className="w-5 h-5" />
-            <span className="text-[9px] font-medium uppercase tracking-wider select-none">Diar</span>
-          </button>
+            <Scan className="w-6 h-6 text-black" strokeWidth={2.6} />
+          </span>
+        </button>
+      )}
 
-          <button
-            onClick={() => setActiveTab("scanner")}
-            id="nav_scanner_tab"
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "scanner" 
-                ? "text-brand-primary font-bold" 
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            <Scan className="w-5 h-5" />
-            <span className="text-[9px] font-medium uppercase tracking-wider select-none">Scan</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("coach")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "coach" 
-                ? "text-brand-primary font-bold" 
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            <MessageSquare className="w-5 h-5" />
-            <span className="text-[9px] font-medium uppercase tracking-wider select-none">Coach</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "profile"
-                ? "text-brand-primary font-bold"
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[9px] font-medium uppercase tracking-wider select-none font-bold">Bio</span>
-          </button>
-
-        </div>
-      </nav>
+      {/* Bottom Nav — 3 tabs, FAB occupies center gap */}
+      {profile.onboarded && (
+        <nav
+          id="bottom_nav_bar"
+          className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl border-t tg-pb-safe"
+          style={{
+            background: "rgba(10,10,11,0.85)",
+            borderColor: "rgba(255,255,255,0.06)",
+          }}
+        >
+          <div className="max-w-md mx-auto px-4 py-1.5 grid grid-cols-3 gap-1">
+            {(
+              [
+                { id: "home",      Icon: HomeIcon,      label: "Home" },
+                { id: "dashboard", Icon: BookOpen,       label: "Diary" },
+                { id: "coach",     Icon: MessageSquare,  label: "Coach" },
+              ] as const
+            ).map(({ id, Icon, label }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    try { tg?.HapticFeedback?.impactOccurred?.("light"); } catch {}
+                    setActiveTab(id);
+                  }}
+                  className={`relative flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl no-select transition-colors duration-150 ${
+                    active ? "text-brand-primary" : "text-[#8E8E93] active:text-white"
+                  }`}
+                >
+                  <span
+                    className="transition-transform duration-150"
+                    style={{ transform: active ? "scale(1.1)" : "scale(1)" }}
+                  >
+                    <Icon
+                      className="w-[22px] h-[22px]"
+                      strokeWidth={active ? 2.4 : 1.8}
+                    />
+                  </span>
+                  <span className="text-[10px] font-semibold tracking-wide">{label}</span>
+                  {/* Active indicator dot */}
+                  <span
+                    className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-[3px] rounded-full transition-all duration-200"
+                    style={{
+                      width: active ? "20px" : "0px",
+                      background: "#00FF85",
+                      opacity: active ? 1 : 0,
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </nav>
       )}
 
       {profile.onboarded && (

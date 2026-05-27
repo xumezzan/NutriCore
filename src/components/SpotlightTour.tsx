@@ -4,7 +4,7 @@ import { Play, Sparkles, X, ChevronRight, ChevronLeft, Info, HelpCircle } from "
 
 interface Step {
   targetId: string;
-  tab: "dashboard" | "scanner" | "coach" | "profile";
+  tab: "home" | "dashboard" | "scanner" | "coach" | "profile";
   ru: {
     title: string;
     description: string;
@@ -17,59 +17,71 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    targetId: "calorie_circular_hub",
-    tab: "dashboard",
+    targetId: "home_ai_input_pill",
+    tab: "home",
     ru: {
-      title: "Дневной баланс калорий и БЖУ",
-      description: "Ваш интерактивный фитнес-центр в реальном времени. Внешний круг показывает съеденные калории, а мини-кольца снизу показывают прогресс по Белкам, Жирам и Углеводам с автокоррекцией."
+      title: "AI-копилот по питанию",
+      description: "Сфотографируй, скажи или опиши еду — ИИ мгновенно посчитает калории и БЖУ. Это главный способ добавить приём пищи."
     },
     uz: {
-      title: "Kunlik kaloriya va KBJU balansi",
-      description: "Sizning shaxsiy energiya markazingiz. Katta doira iste'mol qilingan kaloriyani, pastdagi kichik halqalar esa protein, yog' va uglevodlar foizini va qoldig'ini ko'rsatib boradi."
+      title: "Ovqatlanish bo'yicha AI-kopilot",
+      description: "Suratga ol, ayt yoki tasvirla — sun'iy intellekt kaloriya va KBJUni darhol hisoblaydi. Bu ovqat qo'shishning asosiy usuli."
     }
   },
   {
     targetId: "nav_scanner_tab",
-    tab: "dashboard", // bottom tab bar is visible on all tabs
+    tab: "home",
     ru: {
-      title: "Умный AI-Сканер рациона",
-      description: "Нажмите на эту кнопку внизу для перехода к сканеру. Вы можете загрузить фото порции целиком, штрих-код товара, сделать снимок вживую или просто продиктовать рацион голосом!"
+      title: "Сканер всегда под рукой",
+      description: "Зелёная кнопка по центру открывает камеру и голосовой ввод. Доступна с любого экрана — никаких поисков."
     },
     uz: {
-      title: "Intellektual AI-Skaner",
-      description: "Ovqatlar va mahsulotlarni kiritish uchun shu tugmani bosing. Kamera orqali suratga olishingiz, rasm yuklashingiz yoki shunchaki nima yeganingizni mikrofonga aytishingiz mumkin."
+      title: "Skaner doim qo'l ostida",
+      description: "Markazdagi yashil tugma kamerani va ovozli kiritishni ochadi. Istalgan ekrandan ishlaydi — qidirishga hojat yo'q."
+    }
+  },
+  {
+    targetId: "home_today_strip",
+    tab: "home",
+    ru: {
+      title: "Сводка дня",
+      description: "Здесь видно остаток калорий и БЖУ за сегодня. Тапни — попадёшь в дневник с полной аналитикой."
+    },
+    uz: {
+      title: "Kunlik xulosa",
+      description: "Bu yerda bugungi kaloriya va KBJU qoldig'i ko'rinadi. Bossang — to'liq tahlil bilan kundalikka o'tasiz."
+    }
+  },
+  {
+    targetId: "calorie_circular_hub",
+    tab: "dashboard",
+    ru: {
+      title: "Полная аналитика — Diary",
+      description: "Большое кольцо калорий, БЖУ детально, лента приёмов пищи и AI-совет дня. Всё что нужно для анализа прогресса."
+    },
+    uz: {
+      title: "To'liq tahlil — Diary",
+      description: "Katta kaloriya halqasi, batafsil KBJU, ovqatlar ro'yxati va kunlik AI maslahat. Progressni tahlil qilish uchun hamma narsa."
     }
   },
   {
     targetId: "chat_input",
     tab: "coach",
     ru: {
-      title: "Спросите личного AI-Доктора",
-      description: "Здесь вы можете общаться с карманным ИИ-нутрициологом. Спросите его: «Сколько калорий в узбекской самсе?», попросите составить меню или спортивный план тренировок!"
+      title: "AI-нутрициолог в чате",
+      description: "Спроси о любом блюде, попроси составить меню или план тренировок. Coach помнит твою цель и параметры."
     },
     uz: {
-      title: "AI-Maslahatshidan so'rang",
-      description: "Ushbu bo'limda shaxsiy AI-dietologingiz bilan muloqot qilasiz. Unga: «Somsa yoki palovda qancha kaloriya bor?» deb yozishingiz yoki shaxsiy taomnomalar so'rashingiz mumkin."
-    }
-  },
-  {
-    targetId: "bottom_nav_bar",
-    tab: "profile",
-    ru: {
-      title: "Кабинет биометрии (Bio)",
-      description: "Здесь зафиксированы ваши рост, пол, дата рождения и желаемые цели. Вы можете ежедневно корректировать свой текущий вес — система мгновенно пересчитает новые нормы!"
-    },
-    uz: {
-      title: "Shaxsiy kabinet va parametrlar",
-      description: "Bu yerda bo'y va tug'ilgan sana kabi asosiy parametrlar saqlanadi. Hozirgi vazningizni doimiy yangilab tursangiz, tizim kunlik normalarni avtomat yangilaydi."
+      title: "Chatdagi AI-dietolog",
+      description: "Istalgan taom haqida so'ra, menyu yoki mashq rejasini tuzishni so'ra. Coach maqsading va parametrlaringni eslab qoladi."
     }
   }
 ];
 
 interface SpotlightTourProps {
   language: AppLanguage;
-  activeTab: "dashboard" | "scanner" | "coach" | "profile";
-  setActiveTab: (tab: "dashboard" | "scanner" | "coach" | "profile") => void;
+  activeTab: "home" | "dashboard" | "scanner" | "coach" | "profile";
+  setActiveTab: (tab: "home" | "dashboard" | "scanner" | "coach" | "profile") => void;
   isOpen: boolean;
   onClose: () => void;
 }

@@ -1,8 +1,7 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { UserProfile, AnalysisResult, MealLog, AppLanguage } from "../types";
 import { apiFetch } from "../telegram";
 import {
-  Scan,
   Camera,
   Upload,
   AlertTriangle,
@@ -14,20 +13,34 @@ import {
   UserCheck,
   Mic,
   MicOff,
-  ClipboardList
+  Keyboard,
+  ClipboardList,
 } from "lucide-react";
+
+type ScanMode = "camera" | "voice" | "text";
 
 interface ScannerProps {
   profile: UserProfile;
   language: AppLanguage;
   onAddMealLog: (log: Omit<MealLog, "id" | "timestamp">) => void;
+  initialMode?: ScanMode;
+  initialText?: string;
 }
 
-export default function Scanner({ profile, language, onAddMealLog }: ScannerProps) {
+export default function Scanner({ profile, language, onAddMealLog, initialMode, initialText }: ScannerProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [useUploadMethod, setUseUploadMethod] = useState<"camera" | "voice">("voice");
+  const [useUploadMethod, setUseUploadMethod] = useState<ScanMode>(initialMode ?? "voice");
+
+  useEffect(() => {
+    if (initialMode) setUseUploadMethod(initialMode);
+  }, [initialMode]);
+
+  // Pre-fill voice/text input when arriving from chip or insight CTA
+  useEffect(() => {
+    if (initialText) setVoiceText(initialText);
+  }, [initialText]);
   const [scanResult, setScanResult] = useState<AnalysisResult | null>(null);
   const [loggedAddedAlert, setLoggedAddedAlert] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -377,63 +390,93 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
   };
 
   return (
-    <div className="space-y-6" id="scanning_frame">
-      {/* Visual scanning decoration */}
-      <div className="bg-gradient-to-r from-brand-sidebar via-brand-card to-brand-sidebar p-5 rounded-2xl border border-brand-border text-left">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-brand-primary/10 rounded-xl border border-brand-primary/20 text-brand-primary shrink-0">
-            <Scan className="w-6 h-6 animate-pulse" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white leading-tight">{labels.headerTitle}</h2>
-            <p className="text-xs text-[#888] mt-0.5 leading-normal">{labels.headerSubtitle}</p>
-          </div>
+    <div className="space-y-5" id="scanning_frame">
+      {/* Premium minimal header */}
+      <div className="space-y-1 pt-2 animate-stagger-1">
+        <div className="flex items-center gap-2 text-[#8E8E93] text-[13px] font-medium">
+          <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
+          <span>{language === "uz" ? "AI skaner" : "AI сканер"}</span>
         </div>
+        <h1
+          className="text-[28px] leading-[1.15] font-black text-white tracking-tight"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          {language === "uz" ? "Nima yedingiz?" : "Что ты съел?"}
+        </h1>
       </div>
 
-      {/* Nav toggle tabs */}
-      {!scanResult && !isScanning && (
-        <div className="grid grid-cols-2 gap-1.5 bg-brand-panel p-1 rounded-xl border border-brand-border-light">
-          <button
-            onClick={() => { setUseUploadMethod("voice"); setErrorMsg(null); }}
-            className={`py-2 px-2.5 text-[10px] sm:text-xs font-extrabold rounded-lg transition-all uppercase tracking-wide ${
-              useUploadMethod === "voice"
-                ? "bg-brand-border-light text-brand-primary shadow-sm"
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            🎤 {labels.tabVoice}
-          </button>
-          <button
-            onClick={() => { setUseUploadMethod("camera"); setErrorMsg(null); }}
-            className={`py-2 px-2.5 text-[10px] sm:text-xs font-extrabold rounded-lg transition-all uppercase tracking-wide ${
-              useUploadMethod === "camera"
-                ? "bg-brand-border-light text-brand-primary shadow-sm"
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            📸 {labels.tabCamera}
-          </button>
+      {/* Premium 3-mode pill segmented control */}
+      {!scanResult && !isScanning && !isParsingVoice && (
+        <div
+          className="grid grid-cols-3 gap-1 p-1 rounded-2xl"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          {([
+            { id: "camera", icon: Camera, ru: "Фото", uz: "Surat" },
+            { id: "voice", icon: Mic, ru: "Голос", uz: "Ovoz" },
+            { id: "text", icon: Keyboard, ru: "Текст", uz: "Matn" },
+          ] as const).map(({ id, icon: Icon, ru, uz }) => {
+            const active = useUploadMethod === id;
+            return (
+              <button
+                key={id}
+                onClick={() => {
+                  setUseUploadMethod(id);
+                  setErrorMsg(null);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all ${
+                  active
+                    ? "bg-white/[0.06] text-white shadow-sm"
+                    : "text-[#8E8E93] hover:text-white"
+                }`}
+                style={
+                  active
+                    ? { boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset" }
+                    : undefined
+                }
+              >
+                <Icon
+                  className={`w-4 h-4 ${active ? "text-brand-primary" : ""}`}
+                  strokeWidth={active ? 2.4 : 1.8}
+                />
+                <span className="text-[12px] font-semibold tracking-wide">
+                  {language === "uz" ? uz : ru}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
       {/* Primary Scanner View Render */}
       {!scanResult && (
         <div className="space-y-4">
-          {useUploadMethod === "voice" ? (
-            /* Voice and Whole Day text parsing layout */
+          {useUploadMethod !== "camera" ? (
+            /* Voice + Text unified dictation panel */
             <div className="space-y-4">
-              <div className="bg-brand-card border border-brand-border p-5 rounded-2xl text-left space-y-4 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-brand-primary/5 rounded-full blur-2xl pointer-events-none" />
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-mono text-zinc-400 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                    <ClipboardList className="w-3.5 h-3.5 text-brand-primary" />
-                    AI Dictation Assistant
+              <div
+                className="rounded-3xl p-5 text-left space-y-4 relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(180deg, #15151A 0%, #101015 100%)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset",
+                }}
+              >
+                <div className="pointer-events-none absolute -top-16 -right-10 w-40 h-40 rounded-full bg-brand-primary/8 blur-3xl" />
+
+                <div className="flex justify-between items-center relative">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-[#8E8E93] font-bold flex items-center gap-1.5">
+                    <ClipboardList className="w-3 h-3 text-brand-primary" />
+                    {useUploadMethod === "voice"
+                      ? (language === "uz" ? "Ovozli kiritish" : "Голосовой ввод")
+                      : (language === "uz" ? "Matn kiritish" : "Текстовый ввод")}
                   </span>
                   {isListening && (
-                    <span className="flex items-center gap-1.5 text-[10px] text-brand-primary font-mono font-bold animate-pulse">
-                      <span className="w-2 h-2 bg-brand-primary rounded-full" />
+                    <span className="flex items-center gap-1.5 text-[10px] text-brand-primary font-mono font-bold">
+                      <span className="w-2 h-2 bg-brand-primary rounded-full animate-pulse" />
                       {labels.voiceListening}
                     </span>
                   )}
@@ -444,40 +487,44 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                     rows={4}
                     value={voiceText}
                     onChange={(e) => setVoiceText(e.target.value)}
-                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300)}
+                    onFocus={(e) =>
+                      setTimeout(
+                        () => e.target.scrollIntoView({ behavior: "smooth", block: "center" }),
+                        300
+                      )
+                    }
                     placeholder={labels.voicePlaceholder}
-                    className="w-full bg-[#070707] text-xs text-[#F5F5F7] p-3.5 pb-14 rounded-xl border border-brand-border focus:border-brand-primary focus:outline-none placeholder-[#555] resize-none transition-all leading-relaxed"
+                    className={`w-full bg-black/40 text-[13px] text-white p-4 ${
+                      useUploadMethod === "voice" ? "pb-14" : ""
+                    } rounded-2xl border border-white/[0.06] focus:border-brand-primary/40 focus:outline-none placeholder-[#48484A] resize-none transition-all leading-relaxed`}
                   />
-                  
-                  {/* Microphone dictation button */}
-                  <button
-                    type="button"
-                    onClick={startSpeechRecognition}
-                    className={`absolute bottom-3 right-3 p-2.5 rounded-xl border transition-all ${
-                      isListening
-                        ? "bg-red-500/10 border-red-500 text-red-500 animate-pulse scale-105"
-                        : "bg-brand-panel hover:bg-brand-border-light border-brand-border text-zinc-400 hover:text-brand-primary"
-                    }`}
-                    title="Запись голоса (Speech to Text)"
-                  >
-                    {isListening ? (
-                      <MicOff className="w-4 h-4" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </button>
+
+                  {useUploadMethod === "voice" && (
+                    <button
+                      type="button"
+                      onClick={startSpeechRecognition}
+                      className={`absolute bottom-3 right-3 p-2.5 rounded-xl border transition-all ${
+                        isListening
+                          ? "bg-red-500/10 border-red-500/40 text-red-400 animate-pulse scale-105"
+                          : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-[#8E8E93] hover:text-brand-primary"
+                      }`}
+                      title={language === "uz" ? "Ovoz yozish" : "Запись голоса"}
+                    >
+                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
 
                 {/* Suggestions Pills */}
-                <div className="space-y-1.5 pt-1">
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <div className="text-[9px] text-[#555] font-mono uppercase tracking-wider font-extrabold">
+                    <div className="text-[10px] text-[#8E8E93] uppercase tracking-[0.18em] font-bold">
                       {labels.suggestedPillLabel}
                     </div>
                     <button
                       type="button"
                       onClick={() => setPillsSeed((s) => s + 1)}
-                      className="text-[9px] text-[#555] hover:text-brand-primary font-mono uppercase tracking-wider transition-colors px-1.5 py-0.5 rounded"
+                      className="text-[10px] text-[#8E8E93] hover:text-brand-primary uppercase tracking-wider transition-colors px-1.5 py-0.5 rounded"
                       title={language === "uz" ? "Yangi misollar" : "Новые примеры"}
                     >
                       🎲
@@ -489,20 +536,25 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                         key={`${pillsSeed}-${i}`}
                         type="button"
                         onClick={() => setVoiceText(pill)}
-                        className="text-[10px] bg-[#0d0d0d] hover:bg-brand-panel border border-brand-border-light/60 text-[#888] hover:text-brand-primary py-1.5 px-3 rounded-lg transition-all text-left truncate font-medium animate-fade-in"
+                        className="text-[11px] bg-white/[0.025] hover:bg-white/[0.05] border border-white/[0.05] text-[#8E8E93] hover:text-white py-2 px-3 rounded-xl transition-all text-left truncate font-medium animate-fade-in"
                       >
-                        ⚡ "{pill}"
+                        {pill}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Main Parse Action */}
-                <div className="pt-2 flex gap-2">
+                {/* Primary parse action */}
+                <div className="pt-1 flex gap-2">
                   <button
                     onClick={handleParseVoiceText}
                     disabled={isParsingVoice || !voiceText.trim()}
-                    className="flex-1 bg-brand-primary hover:bg-[#00E577] disabled:bg-[#111] disabled:text-zinc-650 disabled:border-transparent cursor-pointer disabled:cursor-not-allowed active:scale-[0.98] text-black font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all text-xs uppercase tracking-widest font-mono flex items-center justify-center gap-2"
+                    className="flex-1 bg-brand-primary hover:bg-[#00E577] disabled:bg-white/[0.04] disabled:text-[#48484A] active:scale-[0.98] text-black font-bold py-3.5 px-4 rounded-2xl transition-all text-[13px] tracking-wide flex items-center justify-center gap-2"
+                    style={{
+                      boxShadow: voiceText.trim() && !isParsingVoice
+                        ? "0 8px 24px rgba(0,229,119,0.25)"
+                        : undefined,
+                    }}
                   >
                     {isParsingVoice ? (
                       <>
@@ -511,7 +563,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4 text-black stroke-[2.5]" />
+                        <Sparkles className="w-4 h-4 stroke-[2.5]" />
                         <span>{labels.voiceParseBtn}</span>
                       </>
                     )}
@@ -520,24 +572,16 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                   {voiceText && (
                     <button
                       onClick={resetVoiceParser}
-                      className="bg-[#0A0A0A] hover:bg-brand-panel border border-brand-border text-[#a55] hover:text-[#faa] px-4 rounded-xl text-xs font-bold transition-all uppercase"
+                      className="bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-[#8E8E93] hover:text-white px-4 rounded-2xl text-[12px] font-bold transition-all"
                     >
-                      X
+                      ✕
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Parsed Result from Voice Organizer */}
-              {isParsingVoice && (
-                <div className="p-10 text-center bg-brand-card rounded-2xl border border-brand-border space-y-4 animate-pulse shadow-2xl">
-                  <div className="relative w-16 h-16 mx-auto">
-                    <Scan className="w-16 h-16 text-brand-primary animate-spin stroke-[1.5]" />
-                    <div className="absolute top-1/2 left-0 w-full h-[2px] bg-brand-blue animate-bounce" />
-                  </div>
-                  <p className="text-sm text-[#F5F5F7] font-bold">{labels.voiceParsingState}</p>
-                </div>
-              )}
+              {/* Streaming AI loading state */}
+              {isParsingVoice && <StreamingThinking language={language} mode="voice" />}
 
               {voiceResult && !isParsingVoice && (
                 <div className="space-y-4 mt-2">
@@ -558,82 +602,122 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
 
                   {/* Identified items list */}
                   <div className="space-y-3">
-                    <h5 className="text-[10px] font-mono text-brand-primary uppercase tracking-widest text-left font-bold pl-1 flex items-center gap-1.5">
-                      <ClipboardList className="w-4 h-4 text-brand-blue" />
-                      {labels.parsedItemsTitle} ({voiceResult.items.length})
-                    </h5>
+                    <div className="flex items-center gap-2 px-1">
+                      <ClipboardList className="w-3 h-3 text-brand-primary" />
+                      <h5 className="text-[10px] uppercase tracking-[0.18em] text-[#8E8E93] font-bold">
+                        {labels.parsedItemsTitle} ({voiceResult.items.length})
+                      </h5>
+                    </div>
 
                     <div className="space-y-2.5">
                       {voiceResult.items.map((item, index) => {
                         const isAdded = addedItemsIndices.includes(index);
-                        const itemScoreColor = item.healthScore >= 75
-                          ? "text-brand-primary border-brand-primary/30 bg-brand-primary/10"
+
+                        // Confidence score — derived from healthScore as proxy:
+                        // high health score = AI is more certain about the item
+                        const confidence = item.healthScore >= 70
+                          ? { pct: 85, label: language === "uz" ? "Yuqori ishonch" : "Высокая точность", color: "#00E577" }
+                          : item.healthScore >= 45
+                          ? { pct: 65, label: language === "uz" ? "O'rtacha ishonch" : "Средняя точность", color: "#00D9F6" }
+                          : { pct: 40, label: language === "uz" ? "Taxminiy" : "Приблизительно", color: "#F59E0B" };
+
+                        const scoreColor = item.healthScore >= 75
+                          ? "text-brand-primary border-brand-primary/20 bg-brand-primary/8"
                           : item.healthScore >= 50
-                          ? "text-brand-blue border-brand-blue/30 bg-brand-blue/10"
-                          : "text-red-400 border-red-500/30 bg-red-500/10";
+                          ? "text-[#00D9F6] border-[#00D9F6]/20 bg-[#00D9F6]/8"
+                          : "text-red-400 border-red-500/20 bg-red-500/8";
 
                         return (
                           <div
                             key={index}
-                            className="bg-brand-card border border-brand-border p-4 rounded-xl text-left space-y-3 shadow-md"
+                            className="rounded-2xl p-4 text-left space-y-3"
+                            style={{
+                              background: isAdded
+                                ? "rgba(0,229,119,0.04)"
+                                : "rgba(255,255,255,0.025)",
+                              border: isAdded
+                                ? "1px solid rgba(0,229,119,0.15)"
+                                : "1px solid rgba(255,255,255,0.05)",
+                              transition: "all 0.3s ease",
+                            }}
                           >
+                            {/* Header row */}
                             <div className="flex justify-between items-start gap-3">
-                              <div>
-                                <h6 className="text-sm font-bold text-white leading-tight">
+                              <div className="min-w-0 flex-1">
+                                <h6 className="text-[14px] font-semibold text-white leading-tight truncate">
                                   {item.productName}
                                 </h6>
-                                <span className="text-[10px] text-zinc-500 font-mono block mt-1">
+                                <span className="text-[11px] text-[#8E8E93] block mt-0.5">
                                   {item.weightGrams} {labels.gramsUnit}
                                 </span>
                               </div>
-
-                              <div className={`px-2 py-0.5 rounded text-xs font-bold font-mono border ${itemScoreColor}`}>
+                              <div className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold tabular-nums shrink-0 ${scoreColor}`}>
                                 {item.healthScore}
                               </div>
                             </div>
 
-                            {/* Macro values panel */}
-                            <div className="grid grid-cols-4 gap-1.5 bg-[#070707] p-2 rounded-lg border border-brand-border-light/40 text-center">
-                              <div>
-                                <div className="text-[8px] text-zinc-500 font-mono uppercase">Kcal</div>
-                                <div className="text-xs font-bold font-mono text-white mt-0.5">{item.calories}</div>
+                            {/* Confidence bar */}
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-[#8E8E93] uppercase tracking-[0.12em] font-bold">
+                                  {language === "uz" ? "Ishonch" : "Точность AI"}
+                                </span>
+                                <span className="text-[10px] font-bold tabular-nums" style={{ color: confidence.color }}>
+                                  {confidence.label}
+                                </span>
                               </div>
-                              <div>
-                                <div className="text-[8px] text-brand-primary font-mono uppercase">Prot</div>
-                                <div className="text-xs font-bold font-mono text-brand-primary mt-0.5">{item.protein}g</div>
-                              </div>
-                              <div>
-                                <div className="text-[8px] text-brand-blue font-mono uppercase">Fat</div>
-                                <div className="text-xs font-bold font-mono text-brand-blue mt-0.5">{item.fat}g</div>
-                              </div>
-                              <div>
-                                <div className="text-[8px] text-zinc-500 font-mono uppercase">Carb</div>
-                                <div className="text-xs font-bold font-mono text-[#AAA] mt-0.5">{item.carbs}g</div>
+                              <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-700"
+                                  style={{ width: `${confidence.pct}%`, background: confidence.color }}
+                                />
                               </div>
                             </div>
 
-                            {/* Cooking Method / Способ приготовления advice */}
+                            {/* Inline macros */}
+                            <div className="grid grid-cols-4 gap-2 rounded-xl p-3"
+                              style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.04)" }}
+                            >
+                              {[
+                                { l: "kcal", v: item.calories, c: "text-white" },
+                                { l: language === "uz" ? "oqsil" : "белок", v: `${item.protein}g`, c: "text-brand-primary" },
+                                { l: language === "uz" ? "yog'" : "жиры", v: `${item.fat}g`, c: "text-[#00D9F6]" },
+                                { l: language === "uz" ? "uglevod" : "углев.", v: `${item.carbs}g`, c: "text-[#A78BFA]" },
+                              ].map((m) => (
+                                <div key={m.l} className="text-center">
+                                  <div className="text-[9px] text-[#48484A] uppercase tracking-wide mb-0.5">{m.l}</div>
+                                  <div className={`text-[12px] font-bold tabular-nums ${m.c}`}>{m.v}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Cooking method */}
                             {item.cookingMethod && (
-                              <div className="p-3 bg-[#0A0A0C] border-l-2 border-brand-blue rounded text-[11px] text-zinc-450 leading-relaxed font-sans">
-                                <span className="font-bold text-brand-blue uppercase font-mono tracking-wider block text-[9px] mb-0.5">
-                                  🍳 {labels.cookingMethodLabel}:
-                                </span>
-                                {item.cookingMethod}
+                              <div className="rounded-xl p-3 flex gap-2 items-start"
+                                style={{ background: "rgba(0,217,246,0.05)", border: "1px solid rgba(0,217,246,0.1)" }}
+                              >
+                                <span className="text-[#00D9F6] shrink-0">🍳</span>
+                                <p className="text-[11px] text-[#8E8E93] leading-relaxed">{item.cookingMethod}</p>
                               </div>
                             )}
 
-                            {/* Single log action callback */}
-                            <div className="flex justify-end pt-1">
+                            {/* Add to diary */}
+                            <div className="flex justify-end">
                               <button
                                 onClick={() => handleAddSingleVoiceItem(item, index)}
                                 disabled={isAdded}
-                                className={`px-3 py-1.5 rounded-lg font-bold text-[9px] uppercase transition-all ${
+                                className={`px-4 py-2 rounded-xl text-[11px] font-bold transition-all active:scale-95 ${
                                   isAdded
-                                    ? "bg-[#09150F] text-brand-primary border border-brand-primary/20"
-                                    : "bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue border border-brand-blue/30 active:scale-95 cursor-pointer"
+                                    ? "text-brand-primary bg-brand-primary/8 border border-brand-primary/20"
+                                    : "text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08]"
                                 }`}
                               >
-                                {isAdded ? labels.addedSingleSuccess : labels.addSingleBtn}
+                                {isAdded ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    {labels.addedSingleSuccess}
+                                  </span>
+                                ) : labels.addSingleBtn}
                               </button>
                             </div>
                           </div>
@@ -641,12 +725,13 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                       })}
                     </div>
 
-                    {/* Grand Add All items at once button */}
+                    {/* Add All button */}
                     {voiceResult.items.length > 0 && (
-                      <div className="pt-2">
+                      <div className="pt-1">
                         <button
                           onClick={handleAddAllVoiceItems}
-                          className="w-full bg-brand-primary hover:bg-[#00E577] text-black font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all text-xs uppercase tracking-widest font-mono flex items-center justify-center gap-2 cursor-pointer"
+                          className="w-full bg-brand-primary hover:bg-[#00E577] text-black font-bold py-3.5 px-4 rounded-2xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]"
+                          style={{ boxShadow: "0 8px 24px rgba(0,229,119,0.25)" }}
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           {labels.addAllBtn}
@@ -671,29 +756,28 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isScanning}
-                className="w-full aspect-[4/3] bg-brand-card hover:bg-brand-panel border-2 border-dashed border-brand-border-light rounded-3xl flex flex-col items-center justify-center p-8 transition-all group active:scale-[0.99] shadow-xl"
+                className="w-full aspect-[4/3] rounded-3xl flex flex-col items-center justify-center p-8 transition-all group active:scale-[0.99] relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(180deg, #15151A 0%, #0E0E12 100%)",
+                  border: "1.5px dashed rgba(255,255,255,0.1)",
+                }}
               >
-                <div className="p-4 bg-[#0A0A0A]/80 rounded-2xl border border-brand-border mb-4 group-hover:border-brand-primary transition-colors">
-                  <Camera className="w-8 h-8 text-[#888] group-hover:text-brand-primary transition-colors" />
+                <div className="pointer-events-none absolute -top-16 -right-10 w-40 h-40 rounded-full bg-brand-primary/8 blur-3xl" />
+                <div className="relative p-5 rounded-2xl bg-white/[0.04] border border-white/[0.06] mb-4 group-hover:border-brand-primary/40 transition-colors">
+                  <Camera className="w-7 h-7 text-[#8E8E93] group-hover:text-brand-primary transition-colors" />
                 </div>
-                <div className="text-sm font-bold text-[#F5F5F7]">{labels.uploadPlaceholder}</div>
-                <div className="text-[10px] text-[#555] mt-1 font-mono uppercase tracking-wider flex items-center gap-1">
-                  <Upload className="w-3.5 h-3.5" />
-                  Max Limit: 15MB
+                <div className="relative text-[14px] font-semibold text-white">
+                  {labels.uploadPlaceholder}
+                </div>
+                <div className="relative text-[11px] text-[#8E8E93] mt-1.5 flex items-center gap-1">
+                  <Upload className="w-3 h-3" />
+                  Max 15MB
                 </div>
               </button>
             </div>
           )}
 
-          {isScanning && (
-            <div className="p-10 text-center bg-brand-card rounded-2xl border border-brand-border space-y-4 animate-pulse shadow-2xl">
-              <div className="relative w-16 h-16 mx-auto">
-                <Scan className="w-16 h-16 text-brand-primary animate-spin stroke-[1.5]" />
-                <div className="absolute top-1/2 left-0 w-full h-[2px] bg-brand-blue animate-bounce" />
-              </div>
-              <p className="text-sm text-[#F5F5F7] font-bold">{labels.analyzingState}</p>
-            </div>
-          )}
+          {isScanning && <StreamingThinking language={language} mode="photo" />}
 
           {errorMsg && (
             <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-xl text-left flex items-start gap-3">
@@ -708,68 +792,129 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       {scanResult && (
         <div className="space-y-5 text-left" id="scanner_results_panel">
           
-          {/* Main Scoring Bento Card */}
-          <div className="bg-brand-card border border-brand-border p-6 rounded-3xl relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-brand-primary/5 rounded-full blur-3xl pointer-events-none" />
-            
-            <div className="flex justify-between items-start gap-4 mb-4">
-              <div>
-                <span className="text-[10px] text-[#555] uppercase tracking-wider font-bold block">{labels.scoreLabel} card</span>
-                <h3 className="text-xl font-bold text-white mt-0.5">{scanResult.productName}</h3>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full border border-brand-border text-[#888] font-mono capitalize`}>
-                    {scanResult.category.replace("_", " ")}
-                  </span>
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full border border-dashed ${getNovaBadge(scanResult.novaCategory).class}`}>
-                    {getNovaBadge(scanResult.novaCategory).label}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="text-center shrink-0">
-                <div className={`w-16 h-16 rounded-full flex flex-col items-center justify-center border-2 ${getScoreData(scanResult.healthScore).border} ${getScoreData(scanResult.healthScore).bg}`}>
-                  <span id="final_product_score" className={`text-xl font-black font-mono leading-none ${getScoreData(scanResult.healthScore).color}`}>
-                    {scanResult.healthScore}
-                  </span>
-                  <span className="text-[9px] text-[#555] font-bold uppercase mt-0.5">/100</span>
-                </div>
-                <div className={`text-[9px] font-bold mt-1.5 ${getScoreData(scanResult.healthScore).color}`}>
-                  {getScoreData(scanResult.healthScore).label}
-                </div>
-              </div>
-            </div>
+          {/* Hero Result — verdict + big number + score */}
+          <div
+            className="rounded-3xl p-6 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(180deg, #15151A 0%, #0E0E12 100%)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
+          >
+            <div className="pointer-events-none absolute -top-20 -right-10 w-48 h-48 rounded-full bg-brand-primary/10 blur-3xl" />
 
-            {/* Verdict statement */}
-            <div className="p-4 bg-[#0A0A0A]/70 rounded-2xl border border-brand-border text-xs text-zinc-350 leading-relaxed flex gap-2.5 items-start shadow-inner">
-              <Coffee className="w-5 h-5 text-brand-primary shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-white">AI Coach Says: </span>
-                {scanResult.verdict}
-              </div>
-            </div>
-          </div>
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-[#8E8E93] font-bold mb-1">
+                    {language === "uz" ? "AI tahlil" : "AI разбор"}
+                  </div>
+                  <h3
+                    className="text-[22px] font-black text-white leading-tight tracking-tight"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    {scanResult.productName}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-[#8E8E93] capitalize">
+                      {scanResult.category.replace("_", " ")}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full border ${getNovaBadge(scanResult.novaCategory).class}`}
+                    >
+                      {getNovaBadge(scanResult.novaCategory).label}
+                    </span>
+                  </div>
+                </div>
 
-          {/* Caloric details grid */}
-          <div className="grid grid-cols-4 gap-2">
-            <div className="p-3 bg-[#111111] border border-brand-border rounded-xl text-center space-y-1">
-              <div className="text-[10px] text-[#888] uppercase font-mono">Calories</div>
-              <div id="result_calories_val" className="text-sm font-bold text-white font-mono">{scanResult.macros.calories}</div>
-              <div className="text-[9px] text-[#555]">kcal / 100g</div>
-            </div>
-            <div className="p-3 bg-[#111111] border border-brand-border rounded-xl text-center space-y-1">
-              <div className="text-[10px] text-brand-primary uppercase font-mono font-bold">Protein</div>
-              <div id="result_protein_val" className="text-sm font-bold text-brand-primary font-mono">{scanResult.macros.protein}g</div>
-              <div className="text-[9px] text-[#555]">{Math.round(scanResult.macros.protein * 4)} kcal</div>
-            </div>
-            <div className="p-3 bg-[#111111] border border-brand-border rounded-xl text-center space-y-1">
-              <div className="text-[10px] text-brand-blue uppercase font-mono font-bold">Fats</div>
-              <div id="result_fat_val" className="text-sm font-bold text-brand-blue font-mono">{scanResult.macros.fat}g</div>
-              <div className="text-[9px] text-[#555]">{Math.round(scanResult.macros.fat * 9)} kcal</div>
-            </div>
-            <div className="p-3 bg-[#111111] border border-brand-border rounded-xl text-center space-y-1">
-              <div className="text-[10px] text-[#888] uppercase font-mono">Carbs</div>
-              <div id="result_carbs_val" className="text-sm font-bold text-[#AAA] font-mono">{scanResult.macros.carbs}g</div>
-              <div className="text-[9px] text-[#555]">{Math.round(scanResult.macros.carbs * 4)} kcal</div>
+                <div className="text-center shrink-0">
+                  <div
+                    className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center border ${getScoreData(scanResult.healthScore).border} ${getScoreData(scanResult.healthScore).bg}`}
+                  >
+                    <span
+                      id="final_product_score"
+                      className={`text-[22px] font-black leading-none tabular-nums ${getScoreData(scanResult.healthScore).color}`}
+                    >
+                      {scanResult.healthScore}
+                    </span>
+                    <span className="text-[9px] text-[#8E8E93] font-bold uppercase mt-1 tracking-wider">
+                      /100
+                    </span>
+                  </div>
+                  <div
+                    className={`text-[10px] font-bold mt-1.5 ${getScoreData(scanResult.healthScore).color}`}
+                  >
+                    {getScoreData(scanResult.healthScore).label}
+                  </div>
+                </div>
+              </div>
+
+              {/* Big calorie number */}
+              <div className="flex items-baseline gap-2 mb-5">
+                <span
+                  className="text-[40px] font-black text-white tracking-tight tabular-nums leading-none"
+                  style={{ letterSpacing: "-0.03em" }}
+                >
+                  {scanResult.macros.calories}
+                </span>
+                <span className="text-[14px] text-[#8E8E93] font-medium">
+                  {language === "uz" ? "kkal / 100g" : "ккал / 100г"}
+                </span>
+              </div>
+
+              {/* Inline macro bars */}
+              <div className="space-y-2.5 mb-5">
+                {[
+                  {
+                    label: language === "uz" ? "Oqsil" : "Белки",
+                    val: scanResult.macros.protein,
+                    color: "#00E577",
+                    pct: Math.min((scanResult.macros.protein / 50) * 100, 100),
+                  },
+                  {
+                    label: language === "uz" ? "Yog'" : "Жиры",
+                    val: scanResult.macros.fat,
+                    color: "#00D9F6",
+                    pct: Math.min((scanResult.macros.fat / 60) * 100, 100),
+                  },
+                  {
+                    label: language === "uz" ? "Uglevod" : "Углеводы",
+                    val: scanResult.macros.carbs,
+                    color: "#A78BFA",
+                    pct: Math.min((scanResult.macros.carbs / 80) * 100, 100),
+                  },
+                ].map((m) => (
+                  <div key={m.label} className="flex items-center gap-3">
+                    <span className="text-[11px] text-[#8E8E93] font-semibold w-16 shrink-0">
+                      {m.label}
+                    </span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${m.pct}%`, background: m.color }}
+                      />
+                    </div>
+                    <span className="text-[12px] font-bold text-white tabular-nums w-10 text-right">
+                      {Math.round(m.val)}g
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Verdict — AI insight */}
+              <div
+                className="rounded-2xl p-4 flex gap-3 items-start"
+                style={{
+                  background: "rgba(255,255,255,0.025)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                }}
+              >
+                <div className="p-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-brand-primary shrink-0">
+                  <Coffee className="w-4 h-4" />
+                </div>
+                <p className="text-[13px] text-white/90 leading-relaxed">
+                  {scanResult.verdict}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -857,13 +1002,20 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
               <button
                 onClick={handleAddToDiary}
                 id="btn_log_scanned_meal"
-                className="w-full bg-brand-primary hover:bg-[#00E577] active:scale-[0.98] text-black font-extrabold py-4 px-4 rounded-xl shadow-lg transition-all text-sm uppercase flex items-center justify-center gap-2"
+                className="w-full bg-brand-primary hover:bg-[#00E577] active:scale-[0.98] text-black font-bold py-4 px-4 rounded-2xl transition-all text-[14px] flex items-center justify-center gap-2"
+                style={{ boxShadow: "0 8px 24px rgba(0,229,119,0.25)" }}
               >
                 <PlusCircle className="w-5 h-5" />
                 {labels.logMealBtn}
               </button>
             ) : (
-              <div className="w-full bg-brand-primary/10 border border-brand-primary/35 p-3 rounded-xl text-center text-xs font-semibold text-brand-primary flex items-center justify-center gap-2">
+              <div
+                className="w-full p-3.5 rounded-2xl text-center text-[13px] font-semibold text-brand-primary flex items-center justify-center gap-2"
+                style={{
+                  background: "rgba(0,229,119,0.08)",
+                  border: "1px solid rgba(0,229,119,0.25)",
+                }}
+              >
                 <CheckCircle2 className="w-4 h-4" />
                 {labels.addedSuccess}
               </div>
@@ -872,13 +1024,110 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
             <button
               onClick={resetScanner}
               id="btn_scanner_reset"
-              className="w-full bg-[#0A0A0A] hover:bg-brand-panel text-[#888] hover:text-[#F5F5F7] border border-brand-border-light py-3 px-4 rounded-xl text-xs font-semibold transition-all uppercase font-mono"
+              className="w-full bg-white/[0.025] hover:bg-white/[0.05] text-[#8E8E93] hover:text-white border border-white/[0.06] py-3 px-4 rounded-2xl text-[12px] font-semibold transition-all"
             >
               {labels.reScanBtn}
             </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────
+   Streaming AI "thinking" indicator.
+   Reveals 3 stages with staggered delays — creates
+   perception of AI reasoning vs a generic spinner.
+   ─────────────────────────────────────────────── */
+function StreamingThinking({
+  language,
+  mode,
+}: {
+  language: AppLanguage;
+  mode: "photo" | "voice";
+}) {
+  const STEPS = {
+    ru: {
+      photo: [
+        "Распознаю блюдо на фото...",
+        "Оцениваю размер порции...",
+        "Считаю калории и БЖУ...",
+      ],
+      voice: [
+        "Слышу твой рацион...",
+        "Раскладываю на блюда...",
+        "Считаю КБЖУ для каждого...",
+      ],
+    },
+    uz: {
+      photo: [
+        "Surat orqali taomni aniqlayapman...",
+        "Porsiya hajmini baholayapman...",
+        "Kaloriya va KBJUni hisoblayapman...",
+      ],
+      voice: [
+        "Ratsioningizni eshityapman...",
+        "Taomlarga ajratayapman...",
+        "Har biri uchun KBJUni hisoblayapman...",
+      ],
+    },
+  }[language][mode];
+
+  const [visible, setVisible] = useState(1);
+  useEffect(() => {
+    const t1 = setTimeout(() => setVisible(2), 700);
+    const t2 = setTimeout(() => setVisible(3), 1500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  return (
+    <div
+      className="rounded-3xl p-6 space-y-3 animate-fade-in"
+      style={{
+        background: "linear-gradient(180deg, #15151A 0%, #101015 100%)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div className="flex items-center gap-2 pb-2 border-b border-white/[0.04]">
+        <Sparkles className="w-3.5 h-3.5 text-brand-primary animate-pulse" />
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[#8E8E93] font-bold">
+          {language === "uz" ? "AI tahlil qilmoqda" : "AI анализирует"}
+        </span>
+      </div>
+      <div className="space-y-2.5">
+        {STEPS.map((line, i) => {
+          const shown = i < visible;
+          const active = i === visible - 1;
+          return (
+            <div
+              key={i}
+              className={`flex items-center gap-2.5 transition-all duration-500 ${
+                shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  active ? "bg-brand-primary animate-pulse" : "bg-brand-primary/50"
+                }`}
+              />
+              <span
+                className={`text-[13px] ${
+                  active ? "text-white font-medium" : "text-[#8E8E93]"
+                }`}
+              >
+                {line}
+              </span>
+              {!active && shown && (
+                <CheckCircle2 className="w-3.5 h-3.5 text-brand-primary ml-auto" />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
