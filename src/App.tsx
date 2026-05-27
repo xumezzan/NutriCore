@@ -267,7 +267,7 @@ export default function App() {
 
       {/* Main Container Wrapper */}
       <main className="flex-1 w-full max-w-md mx-auto px-4 py-5 scroll-smooth">
-        {!profile.onboarded ? (
+        {!hydrated ? null : !profile.onboarded ? (
           <Onboarding
             language={language}
             onComplete={(newProfile) => {
