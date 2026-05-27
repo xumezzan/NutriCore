@@ -444,6 +444,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                     rows={4}
                     value={voiceText}
                     onChange={(e) => setVoiceText(e.target.value)}
+                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300)}
                     placeholder={labels.voicePlaceholder}
                     className="w-full bg-[#070707] text-xs text-[#F5F5F7] p-3.5 pb-14 rounded-xl border border-brand-border focus:border-brand-primary focus:outline-none placeholder-[#555] resize-none transition-all leading-relaxed"
                   />

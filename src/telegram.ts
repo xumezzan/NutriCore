@@ -99,6 +99,10 @@ function syncViewportVars(): void {
   if (tg.viewportStableHeight) {
     root.style.setProperty("--tg-viewport", `${tg.viewportStableHeight}px`);
   }
+  // viewportHeight shrinks when the keyboard opens — used for keyboard-aware layouts
+  if (tg.viewportHeight) {
+    root.style.setProperty("--tg-viewport-actual", `${tg.viewportHeight}px`);
+  }
 }
 
 export function initTelegram(): void {

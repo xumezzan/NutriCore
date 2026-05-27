@@ -43,6 +43,13 @@
   --tg-safe-right: 0px;
   --tg-safe-bottom: 0px;
   --tg-safe-left: 0px;
+  --tg-viewport: 100vh;
+  --tg-viewport-actual: 100vh;
+}
+
+/* Fills the visible viewport, shrinks when the keyboard opens */
+.tg-viewport-actual {
+  height: var(--tg-viewport-actual);
 }
 
 /* Premium minimalist global resets */

@@ -20,6 +20,7 @@ export default function NutritionCoach({
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const labels = {
     ru: {
@@ -109,8 +110,19 @@ export default function NutritionCoach({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isThinking]);
 
+  const handleInputFocus = () => {
+    // Give the keyboard time to open, then scroll the input into view
+    setTimeout(() => {
+      inputRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 300);
+  };
+
   return (
-    <div className="flex flex-col h-[74vh] bg-brand-card/45 rounded-2xl border border-brand-border overflow-hidden shadow-2xl" id="chat_coach_viewport">
+    <div
+      className="flex flex-col bg-brand-card/45 rounded-2xl border border-brand-border overflow-hidden shadow-2xl"
+      style={{ height: "calc(var(--tg-viewport-actual) - 140px)" }}
+      id="chat_coach_viewport"
+    >
       
       {/* Upper header */}
       <div className="bg-brand-sidebar p-4 border-b border-brand-border-light flex items-center justify-between text-left">
@@ -241,11 +253,13 @@ export default function NutritionCoach({
         </button>
 
         <input
+          ref={inputRef}
           type="text"
           id="chat_input"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           onKeyDown={handleKeyPress}
+          onFocus={handleInputFocus}
           placeholder={isListening ? (language === "uz" ? "Eshityapman... gapiring" : "Слушаю вас... говорите") : labels.placeholder}
           disabled={isThinking}
           className="flex-1 bg-[#0A0A0A]/60 border border-brand-border-light rounded-xl py-3 px-4 text-xs text-[#F5F5F7] placeholder-[#555] focus:outline-none focus:border-brand-primary-dim"
