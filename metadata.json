@@ -1,0 +1,6 @@
+{
+  "name": "AI Fitness & Food Scanner",
+  "description": "Telegram Mini App level health, fitness & food scanning assistant for Uzbekistan & CIS, with OCR ingredient analysis, nutrition coach, and BJU tracker.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

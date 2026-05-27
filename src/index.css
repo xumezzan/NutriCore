@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #00FF85;
+  --color-brand-primary-dim: #00E577;
+  --color-brand-blue: #00A3FF;
+  --color-brand-bg: #0A0A0A;
+  --color-brand-sidebar: #0D0D0E;
+  --color-brand-card: #111111;
+  --color-brand-panel: #1A1A1A;
+  --color-brand-border: #222222;
+  --color-brand-border-light: #333333;
+  --color-brand-line-dark: #1F1F22;
+
+  /* Custom zinc shades referenced by components */
+  --color-zinc-350: #B0B0B6;
+  --color-zinc-450: #8A8A92;
+  --color-zinc-550: #5E5E66;
+  --color-zinc-555: #58585F;
+  --color-zinc-650: #4A4A52;
+
+  /* Custom spacing for fine-grain icon sizes */
+  --spacing-5\.5: 1.375rem;
+
+  /* Animations */
+  --animate-fade-in: fadeIn 0.45s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Safe-area defaults — overridden by JS when running inside Telegram. */
+:root {
+  --tg-safe-top: 0px;
+  --tg-safe-right: 0px;
+  --tg-safe-bottom: 0px;
+  --tg-safe-left: 0px;
+}
+
+/* Premium minimalist global resets */
+html,
+body {
+  background-color: #0A0A0A;
+  color: #F5F5F7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+    "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Telegram / iOS safe-area helpers. Use max() so iOS env() insets still apply
+   in a regular browser, while the JS-provided Telegram insets win inside TMA. */
+.tg-pb-safe {
+  padding-bottom: max(var(--tg-safe-bottom), env(safe-area-inset-bottom));
+}
+.tg-pt-safe {
+  padding-top: max(var(--tg-safe-top), env(safe-area-inset-top));
+}
+
+/* Custom thin scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #222222 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 9999px;
+}
+
+.scrollbar-thumb-brand-border::-webkit-scrollbar-thumb {
+  background: #222222;
+}
+
+/* Range slider polish */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #1A1A1A;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #00FF85;
+  border: 2px solid #0A0A0A;
+  border-radius: 9999px;
+  margin-top: -7px;
+  box-shadow: 0 0 0 1px #333333, 0 4px 10px rgba(0, 255, 133, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: #1A1A1A;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #00FF85;
+  border: 2px solid #0A0A0A;
+  border-radius: 9999px;
+  cursor: pointer;
+}
+
+/* Date input dark theme tweak */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
