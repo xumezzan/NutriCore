@@ -86,10 +86,10 @@ export default function Dashboard({
   onNavigateToScan
 }: DashboardProps) {
   // Sum consumed
-  const totalCalories = mealLogs.reduce((acc, curr) => acc + curr.calories, 0);
-  const totalProtein = mealLogs.reduce((acc, curr) => acc + curr.protein, 0);
-  const totalFat = mealLogs.reduce((acc, curr) => acc + curr.fat, 0);
-  const totalCarbs = mealLogs.reduce((acc, curr) => acc + curr.carbs, 0);
+  const totalCalories = Math.round(mealLogs.reduce((acc, curr) => acc + curr.calories, 0));
+  const totalProtein = Math.round(mealLogs.reduce((acc, curr) => acc + curr.protein, 0));
+  const totalFat = Math.round(mealLogs.reduce((acc, curr) => acc + curr.fat, 0));
+  const totalCarbs = Math.round(mealLogs.reduce((acc, curr) => acc + curr.carbs, 0));
 
   const calProgress = Math.min((totalCalories / targetCalories) * 100, 100);
   const protProgress = Math.min((totalProtein / targetProtein) * 100, 100);

@@ -58,7 +58,12 @@ export default function App() {
         } catch {}
       }
       if (m) {
-        try { setMealLogs(JSON.parse(m)); } catch {}
+        try {
+          const parsed: MealLog[] = JSON.parse(m);
+          // Strip legacy stub entries that shipped with the old DEFAULT_MEAL_LOGS
+          const LEGACY_IDS = new Set(["init_log_1", "init_log_2"]);
+          setMealLogs(parsed.filter((log) => !LEGACY_IDS.has(log.id)));
+        } catch {}
       }
       if (c) {
         try { setMessages(JSON.parse(c)); } catch {}
