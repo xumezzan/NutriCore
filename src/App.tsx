@@ -269,9 +269,11 @@ export default function App() {
         {!splashDone ? (
           <div className="min-h-[75vh] flex flex-col items-center justify-center gap-8 animate-fade-in">
             {/* Logo icon */}
-            <div className="relative">
+            <div className="relative w-24 h-24">
               <img src="/logo-icon.svg" alt="NutriCore" className="w-24 h-24 select-none drop-shadow-2xl" draggable={false} />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5BA300] rounded-full animate-ping opacity-70" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-5 h-5 bg-[#5BA300] rounded-full animate-ping opacity-60" />
+              </div>
             </div>
 
             <div className="text-center space-y-2">
