@@ -6,14 +6,15 @@ import NutritionCoach from "./components/NutritionCoach";
 import Profile from "./components/Profile";
 import Onboarding, { calculateAge } from "./components/Onboarding";
 import SpotlightTour from "./components/SpotlightTour";
-import { storage, getTelegramLanguage, apiFetch } from "./telegram";
+import { storage, getTelegramLanguage, apiFetch, tg } from "./telegram";
 
 import {
   Flame,
   Scan,
   MessageSquare,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles
 } from "lucide-react";
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -267,7 +268,30 @@ export default function App() {
 
       {/* Main Container Wrapper */}
       <main className="flex-1 w-full max-w-md mx-auto px-4 py-5 scroll-smooth">
-        {!hydrated ? null : !profile.onboarded ? (
+        {!hydrated ? (
+          <div className="min-h-[75vh] flex flex-col items-center justify-center gap-6 animate-fade-in">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl bg-brand-primary flex items-center justify-center text-black font-extrabold text-2xl shadow-2xl shadow-brand-primary/30">
+                NC
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-primary rounded-full animate-ping opacity-60" />
+            </div>
+            <div className="text-center space-y-1.5">
+              {tg?.initDataUnsafe?.user?.first_name ? (
+                <h2 className="text-xl font-black text-white">
+                  {language === "uz" ? "Xush kelibsiz" : "Добро пожаловать"},{" "}
+                  <span className="text-brand-primary">{tg.initDataUnsafe.user.first_name}</span>!
+                </h2>
+              ) : (
+                <h2 className="text-xl font-black text-white">NutriCore AI</h2>
+              )}
+              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-brand-primary" />
+                {language === "uz" ? "Yuklanmoqda..." : "Загрузка..."}
+              </p>
+            </div>
+          </div>
+        ) : !profile.onboarded ? (
           <Onboarding
             language={language}
             onComplete={(newProfile) => {
