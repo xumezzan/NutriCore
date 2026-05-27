@@ -4,7 +4,6 @@ import Dashboard from "./components/Dashboard";
 import Scanner from "./components/Scanner";
 import NutritionCoach from "./components/NutritionCoach";
 import Profile from "./components/Profile";
-import SystemSpecs from "./components/SystemSpecs";
 import Onboarding, { calculateAge } from "./components/Onboarding";
 import SpotlightTour from "./components/SpotlightTour";
 import { storage, getTelegramLanguage, apiFetch } from "./telegram";
@@ -14,51 +13,27 @@ import {
   Scan,
   MessageSquare,
   User,
-  Sliders,
   ShieldCheck
 } from "lucide-react";
 
 const DEFAULT_PROFILE: UserProfile = {
-  age: 26,
-  birthdate: "2000-01-01",
-  height: 178,
-  weight: 74,
+  age: 0,
+  birthdate: "",
+  height: 0,
+  weight: 0,
   gender: "male",
-  goal: "lose",
-  conditions: "Нет сахару, умеренный натрий",
+  goal: "maintain",
+  conditions: "",
   onboarded: false,
 };
 
-const DEFAULT_MEAL_LOGS: MealLog[] = [
-  {
-    id: "init_log_1",
-    productName: "Sutim Молоко 3.2%",
-    timestamp: "09:12",
-    calories: 120,
-    protein: 6.0,
-    fat: 6.4,
-    carbs: 9.4,
-    healthScore: 85,
-  },
-  {
-    id: "init_log_2",
-    productName: "Toshkent To'y Oshi (Плов)",
-    timestamp: "14:30",
-    calories: 360,
-    protein: 12.8,
-    fat: 18.0,
-    carbs: 36.8,
-    healthScore: 68,
-  },
-];
-
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "scanner" | "coach" | "profile" | "specs">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "scanner" | "coach" | "profile">("dashboard");
   const [language, setLanguage] = useState<AppLanguage>(() => getTelegramLanguage() ?? "ru");
   const [showTour, setShowTour] = useState<boolean>(false);
 
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
-  const [mealLogs, setMealLogs] = useState<MealLog[]>(DEFAULT_MEAL_LOGS);
+  const [mealLogs, setMealLogs] = useState<MealLog[]>([]);
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -232,7 +207,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-[#F5F5F7] font-sans flex flex-col justify-between selection:bg-brand-primary/30 selection:text-white pb-24">
+    <div className={`min-h-screen bg-brand-bg text-[#F5F5F7] font-sans flex flex-col justify-between selection:bg-brand-primary/30 selection:text-white ${profile.onboarded ? "pb-24" : ""}`}>
       {/* Top Navigation Frame */}
       <header className="sticky top-0 z-40 bg-brand-bg/85 backdrop-blur-md border-b border-brand-border tg-pt-safe">
         <div className="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
@@ -337,10 +312,6 @@ export default function App() {
                 onStartTour={() => setShowTour(true)}
               />
             )}
-
-            {activeTab === "specs" && (
-              <SystemSpecs />
-            )}
           </>
         )}
       </main>
@@ -348,7 +319,7 @@ export default function App() {
       {/* Persistent Bottom Utility Tab Navigator */}
       {profile.onboarded && (
         <nav id="bottom_nav_bar" className="fixed bottom-0 left-0 right-0 z-50 bg-brand-bg/95 backdrop-blur-lg border-t border-brand-border py-2.5 tg-pb-safe">
-        <div className="max-w-md mx-auto px-3.5 grid grid-cols-5 gap-0.5">
+        <div className="max-w-md mx-auto px-3.5 grid grid-cols-4 gap-0.5">
           
           <button
             onClick={() => setActiveTab("dashboard")}
@@ -390,25 +361,13 @@ export default function App() {
           <button
             onClick={() => setActiveTab("profile")}
             className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "profile" 
-                ? "text-brand-primary font-bold" 
+              activeTab === "profile"
+                ? "text-brand-primary font-bold"
                 : "text-[#888] hover:text-[#F5F5F7]"
             }`}
           >
             <User className="w-5 h-5" />
             <span className="text-[9px] font-medium uppercase tracking-wider select-none font-bold">Bio</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("specs")}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-2.5 rounded-xl transition-all ${
-              activeTab === "specs" 
-                ? "text-brand-primary font-bold" 
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            <Sliders className="w-5 h-5" />
-            <span className="text-[9px] font-medium uppercase tracking-wider select-none">Specs</span>
           </button>
 
         </div>

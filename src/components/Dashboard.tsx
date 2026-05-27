@@ -110,9 +110,24 @@ export default function Dashboard({
       fatLabel: "Жиры",
       carbsLabel: "Углеводы",
       streakTitle: "Фитнес-прогресс",
-      streakBadgeHex: "Уровень: Новичок",
       tipHeader: "AI-Совет Дня",
-      tipBody: "Попробуйте пить зелёный чай без сахара между приёмами пищи. Это ускоряет базальный метаболизм в среднем на 3-4%."
+      tips: [
+        "Попробуйте пить зелёный чай без сахара между приёмами пищи — он ускоряет базальный метаболизм на 3-4%.",
+        "Добавляйте белок в каждый приём пищи: яйцо, творог, курицу или нут. Это повышает сытость и сохраняет мышцы при дефиците.",
+        "Пейте стакан воды за 20 минут до еды — снижает аппетит и помогает не переедать.",
+        "Не пропускайте завтрак с белком и клетчаткой — это стабилизирует уровень сахара на весь день.",
+        "Соль до 5 г в день: следите за соусами, сырами и колбасами — там скрыто 70% дневной нормы.",
+        "Сон менее 6 часов повышает гормон голода (грелин) на 15%. Высыпайтесь — худеть будет проще.",
+        "Овощи должны занимать половину тарелки — это даёт объём, клетчатку и витамины при низкой калорийности.",
+        "Замените белый рис на бурый или киноа — медленные углеводы дольше держат сытость.",
+        "Жиры важны: орехи, авокадо, оливковое масло. Но 1 ст. ложка масла = 120 ккал, дозируйте.",
+        "Ешьте медленно, 15-20 минут на приём пищи — мозг получает сигнал насыщения с задержкой.",
+        "Готовьте плов с меньшим количеством масла и большим объёмом моркови — снизите калорийность на 25%.",
+        "Кефир или йогурт без сахара на ночь — хорошо для микробиоты и помогает не сорваться на сладкое.",
+        "1 банан = 90 ккал и быстрые углеводы. Отличный перекус перед тренировкой, но не на ночь.",
+        "Алкоголь даёт 7 ккал на грамм — больше, чем углеводы. Бокал вина = 150 ккал минимум.",
+        "Силовые тренировки 2-3 раза в неделю ускоряют метаболизм даже в дни отдыха."
+      ]
     },
     uz: {
       trackerTitle: "Kunlik Ratsion",
@@ -127,13 +142,37 @@ export default function Dashboard({
       fatLabel: "Yog'lar",
       carbsLabel: "Uglevodlar",
       streakTitle: "Sog'liq ko'rsatkichi",
-      streakBadgeHex: "Daraja: Yangi boshlovchi",
       tipHeader: "Kunlik AI Maslahat",
-      tipBody: "Ovqatlanish oralig'ida shakarsiz ko'k choy ichishni odat qiling. Bu metabolizmni 3-4% tezlashtiradi."
+      tips: [
+        "Ovqatlanish oralig'ida shakarsiz ko'k choy iching — bu metabolizmni 3-4% tezlashtiradi.",
+        "Har bir ovqatga oqsil qo'shing: tuxum, tvorog, tovuq yoki no'xat. Bu to'qlikni oshiradi va mushaklarni saqlaydi.",
+        "Ovqatdan 20 daqiqa oldin bir stakan suv iching — ishtahani kamaytiradi va ortiqcha yeyishdan saqlaydi.",
+        "Ertalabki nonushtani o'tkazib yubormang: oqsil va tola kun bo'yi qon shakarini barqarorlashtiradi.",
+        "Tuz kuniga 5 g dan oshmasin: souslar, pishloq va kolbasada kunlik me'yorning 70% yashiringan.",
+        "6 soatdan kam uyqu och qoldiruvchi gormon (grelin) ni 15% oshiradi. Yaxshi uxlang — ozish osonlashadi.",
+        "Sabzavotlar likobchaning yarmini egallashi kerak: hajm, tola va vitaminlar past kaloriyada.",
+        "Oq guruch o'rniga jigarrang yoki kinoa tanlang — sekin uglevodlar to'qlikni uzoqroq saqlaydi.",
+        "Yog'lar muhim: yong'oq, avokado, zaytun moyi. Lekin 1 osh qoshiq moy = 120 kkal, miqdorga e'tibor.",
+        "Sekin ovqatlaning, 15-20 daqiqa: miya to'yganlik signalini kechikib oladi.",
+        "Palovni kamroq yog' va ko'proq sabzi bilan tayyorlang — kaloriya 25% ga kamayadi.",
+        "Shakarsiz qatiq yoki yogurt kechqurun — mikrobiota uchun foydali, shirinlikka ishtahani bosadi.",
+        "1 banan = 90 kkal va tez uglevodlar. Mashqdan oldin yaxshi, lekin kechasi emas.",
+        "Spirtli ichimliklar 7 kkal/g beradi — uglevodlardan ko'p. Bir qadah sharob = kamida 150 kkal.",
+        "Haftada 2-3 marta kuch mashqlari — dam olish kunlari ham metabolizmni tezlashtiradi."
+      ]
     }
   }[language];
 
   const remainingCalories = Math.max(targetCalories - totalCalories, 0);
+
+  // Pick one tip per day (rotates by day-of-year, stable within a single day)
+  const dayOfYear = (() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const diff = now.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  })();
+  const tipOfTheDay = labels.tips[dayOfYear % labels.tips.length];
 
   return (
     <div className="space-y-6" id="dashboard_tab_panel">
@@ -141,19 +180,14 @@ export default function Dashboard({
       <div className="bg-brand-card p-6 rounded-[28px] border border-brand-border space-y-5 text-left relative overflow-hidden shadow-xl" id="calorie_circular_hub">
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[10px] text-brand-primary uppercase tracking-widest font-extrabold font-mono flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
-              {labels.trackerTitle}
-            </span>
-            <h3 className="text-lg font-black text-[#F5F5F7] mt-1 tracking-tight">
-              {labels.streakTitle}
-            </h3>
-          </div>
-          <div className="bg-[#050505] border border-brand-border-light/60 px-3.5 py-1.5 rounded-xl text-right">
-            <span className="text-[10px] text-brand-primary font-mono font-bold">{labels.streakBadgeHex}</span>
-          </div>
+        <div>
+          <span className="text-[10px] text-brand-primary uppercase tracking-widest font-extrabold font-mono flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-brand-primary" />
+            {labels.trackerTitle}
+          </span>
+          <h3 className="text-lg font-black text-[#F5F5F7] mt-1 tracking-tight">
+            {labels.streakTitle}
+          </h3>
         </div>
 
         {/* Central panel containing Circular Calorie Progress */}
@@ -360,7 +394,7 @@ export default function Dashboard({
         </div>
         <div className="space-y-1">
           <h5 className="text-xs font-mono text-brand-primary uppercase tracking-widest">{labels.tipHeader}</h5>
-          <p className="text-[11px] text-[#888] leading-relaxed">{labels.tipBody}</p>
+          <p className="text-[11px] text-[#888] leading-relaxed">{tipOfTheDay}</p>
         </div>
       </div>
     </div>

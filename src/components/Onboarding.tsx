@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppLanguage } from "../types";
 import { Sparkles, Calendar, Scale, Activity, Heart, ArrowRight } from "lucide-react";
-import { tg, hapticImpact } from "../telegram";
+import { tg, hapticImpact, isTMA } from "../telegram";
 
 interface OnboardingProps {
   language: AppLanguage;
@@ -151,7 +151,7 @@ export default function Onboarding({ language, onComplete }: OnboardingProps) {
   }, [step, language, birthdate, height, weight, gender, goal, conditions]);
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4">
+    <div className="w-full flex justify-center px-1 py-2">
       <div className="w-full max-w-md bg-brand-card border border-brand-border p-6 rounded-[28px] text-left space-y-6 shadow-2xl relative overflow-hidden animate-fade-in">
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none" />
         
@@ -362,31 +362,34 @@ export default function Onboarding({ language, onComplete }: OnboardingProps) {
           </div>
         )}
 
-        {/* Actions Row */}
-        <div className="pt-2 flex gap-3">
-          {step > 1 && (
-            <button
-              onClick={handleBack}
-              className="bg-brand-panel hover:bg-brand-border-light border border-brand-border text-[#888] hover:text-white px-5 rounded-xl text-xs font-bold transition-all uppercase"
-            >
-              ←
-            </button>
-          )}
-
-          <button
-            onClick={step < 4 ? handleNext : handleComplete}
-            className="flex-1 bg-brand-primary hover:bg-[#00E577] text-black font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all text-xs uppercase tracking-widest font-mono flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-          >
-            {step < 4 ? (
-              <>
-                <span>{labels.next}</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            ) : (
-              <span>{labels.start}</span>
+        {/* Actions Row — hidden inside Telegram, where the native MainButton
+            (and BackButton) drive navigation to avoid duplicate "Continue". */}
+        {!isTMA && (
+          <div className="pt-2 flex gap-3">
+            {step > 1 && (
+              <button
+                onClick={handleBack}
+                className="bg-brand-panel hover:bg-brand-border-light border border-brand-border text-[#888] hover:text-white px-5 rounded-xl text-xs font-bold transition-all uppercase"
+              >
+                ←
+              </button>
             )}
-          </button>
-        </div>
+
+            <button
+              onClick={step < 4 ? handleNext : handleComplete}
+              className="flex-1 bg-brand-primary hover:bg-[#00E577] text-black font-extrabold py-3.5 px-4 rounded-xl shadow-lg transition-all text-xs uppercase tracking-widest font-mono flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              {step < 4 ? (
+                <>
+                  <span>{labels.next}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              ) : (
+                <span>{labels.start}</span>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

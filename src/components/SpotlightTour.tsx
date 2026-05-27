@@ -4,7 +4,7 @@ import { Play, Sparkles, X, ChevronRight, ChevronLeft, Info, HelpCircle } from "
 
 interface Step {
   targetId: string;
-  tab: "dashboard" | "scanner" | "coach" | "profile" | "specs";
+  tab: "dashboard" | "scanner" | "coach" | "profile";
   ru: {
     title: string;
     description: string;
@@ -68,8 +68,8 @@ const STEPS: Step[] = [
 
 interface SpotlightTourProps {
   language: AppLanguage;
-  activeTab: "dashboard" | "scanner" | "coach" | "profile" | "specs";
-  setActiveTab: (tab: "dashboard" | "scanner" | "coach" | "profile" | "specs") => void;
+  activeTab: "dashboard" | "scanner" | "coach" | "profile";
+  setActiveTab: (tab: "dashboard" | "scanner" | "coach" | "profile") => void;
   isOpen: boolean;
   onClose: () => void;
 }

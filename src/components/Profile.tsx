@@ -114,10 +114,6 @@ export default function Profile({ profile, setProfile, language, onStartTour }: 
             <h2 className="text-lg font-bold text-white leading-tight">Athletic Challenger</h2>
           </div>
         </div>
-        <div className="bg-brand-panel p-2.5 rounded-xl border border-brand-border-light text-right">
-          <div className="text-[10px] text-[#555] font-mono font-bold">Streak</div>
-          <div className="text-sm font-bold text-brand-primary">🔥 5 Days</div>
-        </div>
       </div>
 
       {/* Main Settings Panel */}

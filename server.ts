@@ -100,102 +100,8 @@ if (API_KEY) {
     console.error("Failed to initialize OpenAI client:", err);
   }
 } else {
-  console.warn("OPENAI_API_KEY is not defined. Running in Demo/Sandbox mode.");
+  console.warn("OPENAI_API_KEY is not defined. AI endpoints will return 503.");
 }
-
-// Precalculated demo items for the supermarket shelf
-const DEMO_ITEMS = {
-  nestle_sutim: {
-    productName: "Sutim Молоко 3.2%",
-    healthScore: 85,
-    category: "dairy",
-    novaCategory: 1,
-    macros: { calories: 60, protein: 3.0, fat: 3.2, carbs: 4.7, fiber: 0, sodium: 50 },
-    pros: ["Отличный источник кальция и белка", "Минимальная обработка (NOVA 1)", "Без сахара и трансжиров"],
-    cons: ["Содержит лактозу (аллерген для некоторых)", "Средняя жирность"],
-    verdict: "Ajoyib sut mahsuloti. Har kuni iste'mol qilish uchun juda foydali. Отличный молочный продукт для ежедневного рациона.",
-    ingredientsFound: ["Натурализированное цельное коровье молоко"],
-    allergensAlerts: ["Лактоза / Sut oqsili"],
-    reviewsAnalysis: {
-      sentiment: "positive",
-      ratingEstimate: "4.8/5",
-      summary: "Один из самых популярных молочных продуктов Узбекистана. Покупатели ценят за стабильный вкус."
-    },
-    goalEvaluation: "Соответствует норме. Для похудения контролируйте объём — жирность 3.2%. Протеин поможет мышцам."
-  },
-  tashkent_osh: {
-    productName: "Toshkent To'y Oshi (Плов Свадебный)",
-    healthScore: 68,
-    category: "traditional",
-    novaCategory: 2,
-    macros: { calories: 240, protein: 8.5, fat: 12.0, carbs: 24.5, fiber: 1.5, sodium: 340 },
-    pros: ["Натуральные цельные ингредиенты", "Высокая сытость", "Богат белком мяса говядины/баранины"],
-    cons: ["Высокая калорийность", "Много масла и животных жиров", "Высокая углеводная нагрузка"],
-    verdict: "Традиционный узбекский плов. Отличен для энергии, однако содержит большой объём жиров. Употребляйте умеренно.",
-    ingredientsFound: ["Рис Лазер/Аланга", "Говядина", "Баранина", "Морковь", "Курдючное сало", "Зира", "Чеснок", "Нут"],
-    allergensAlerts: ["Нет выраженных аллергенов"],
-    reviewsAnalysis: {
-      sentiment: "positive",
-      ratingEstimate: "4.9/5",
-      summary: "Любимое блюдо СНГ. Высокие оценки вкуса, сытности и аутентичности."
-    },
-    goalEvaluation: "Для набора массы — идеальный высококалорийный приём. Для похудения — порция до 150-200г строго в первой половине дня."
-  },
-  lays_chips: {
-    productName: "Lay's Сметана и Зелень",
-    healthScore: 32,
-    category: "snacks",
-    novaCategory: 4,
-    macros: { calories: 520, protein: 6.0, fat: 32.0, carbs: 53.0, fiber: 4.0, sodium: 680 },
-    pros: ["Быстрый источник кратковременной энергии", "Отличные вкусовые качества"],
-    cons: ["Ультраобработанный продукт (NOVA 4)", "Экстремально высокое содержание соли", "Содержит канцероген акриламид"],
-    verdict: "Продукт высокой степени промышленной обработки. Чрезмерно соленый, перенасыщен пустыми жирами. Лучше исключить.",
-    ingredientsFound: ["Картофель", "Растительное масло", "Ароматизаторы", "Глутамат натрия", "Сухая сметана"],
-    allergensAlerts: ["Глютен пшеницы", "Глутамат натрия", "Молочная сыворотка"],
-    reviewsAnalysis: {
-      sentiment: "mixed",
-      ratingEstimate: "4.5/5 (по вкусу)",
-      summary: "Любимый вкус миллионов, но критикуется нутрициологами за вред для ЖКТ и высокий натрий."
-    },
-    goalEvaluation: "Крайне противопоказан для похудения. При наборе массы не даёт качественного белка для мышц."
-  },
-  pepsi_zero: {
-    productName: "Pepsi Wild Cherry Zero Sugar",
-    healthScore: 48,
-    category: "beverage",
-    novaCategory: 4,
-    macros: { calories: 1, protein: 0, fat: 0, carbs: 0.1, fiber: 0, sodium: 10 },
-    pros: ["Практически нулевая калорийность", "Позволяет заменять сладкие газировки"],
-    cons: ["Содержит аспартам и ацесульфам калия", "Высокая кислотность портит эмаль", "NOVA 4 — ультраобработанный"],
-    verdict: "Нулевая калорийность удобна для похудения, однако химический состав не делает напиток полезным.",
-    ingredientsFound: ["Вода", "Краситель сахарный колер", "Ортофосфорная кислота", "Аспартам", "Ацесульфам калия", "Кофеин"],
-    allergensAlerts: ["Фенилаланин (источник аспартама)"],
-    reviewsAnalysis: {
-      sentiment: "mixed",
-      ratingEstimate: "4.3/5",
-      summary: "Уважается худеющими, но беспокоят слухи о вреде аспартама."
-    },
-    goalEvaluation: "Безопасен по калориям для похудения, но подсластители усиливают тягу к сладкому."
-  },
-  samarkand_shaurma: {
-    productName: "Samarqand Go'shtli Lavash (Шаурма)",
-    healthScore: 71,
-    category: "fast_food",
-    novaCategory: 3,
-    macros: { calories: 310, protein: 14.5, fat: 11.5, carbs: 36.0, fiber: 2.1, sodium: 490 },
-    pros: ["Сбалансирован по белкам и углеводам", "Содержит свежие овощи", "Тонкий лаваш вместо плотной булки"],
-    cons: ["Жирные майонезные соусы", "Высокий уровень соли", "Качество мяса зависит от точки продажи"],
-    verdict: "Отличный перекус. При заказе без майонеза превращается в полноценно хороший обед.",
-    ingredientsFound: ["Пшеничный лаваш", "Куриное мясо/говядина", "Капустный салат", "Огурцы", "Помидоры", "Чесночный соус"],
-    allergensAlerts: ["Глютен пшеницы", "Куриное яйцо (в майонезе)"],
-    reviewsAnalysis: {
-      sentiment: "positive",
-      ratingEstimate: "4.7/5",
-      summary: "Одно из самых любимых блюд уличной еды Узбекистана. Ценится за сытность и сочность."
-    },
-    goalEvaluation: "Для набора массы — отличный источник белков. Для похудения — без майонеза, минус до 150 ккал."
-  }
-};
 
 // Helper: adjust health score based on fitness goal
 function adjustScoreBasedOnGoal(data: any, goal: string) {
@@ -234,34 +140,13 @@ app.post("/api/scan", async (req, res) => {
     const userGoal = userProfile?.goal || "maintain";
     const userConditions = userProfile?.conditions || "";
 
-    // Demo shelf item shortcut
-    if (text && DEMO_ITEMS[text.trim().toLowerCase() as keyof typeof DEMO_ITEMS]) {
-      const item = JSON.parse(JSON.stringify(DEMO_ITEMS[text.trim().toLowerCase() as keyof typeof DEMO_ITEMS]));
-      adjustScoreBasedOnGoal(item, userGoal);
-      return res.json({ success: true, data: item, source: "demo_database" });
-    }
-
-    // Sandbox fallback
     if (!ai) {
-      const name = (text && text.length <= 50) ? text : "Сканированный продукт";
-      const fallback = {
-        productName: name,
-        healthScore: Math.floor(Math.random() * 40) + 50,
-        category: "general",
-        novaCategory: 2,
-        macros: { calories: 180, protein: 7.5, fat: 4.2, carbs: 22.1, fiber: 2.8, sodium: 120 },
-        pros: ["Преимущественно натуральные компоненты", "Умеренная калорийность"],
-        cons: ["Возможны простые сахара", "Возможны консерванты"],
-        verdict: language === "uz"
-          ? "Tizim sandbox rejimida. To'liq tahlil uchun OPENAI_API_KEY ni .env fayliga qo'shing."
-          : "Приложение в демо-режиме. Для анализа фото добавьте OPENAI_API_KEY в файл .env.",
-        ingredientsFound: ["Пшеничный белок", "Крахмал", "Специи", "Вода", "Соль"],
-        allergensAlerts: ["Глютен"],
-        reviewsAnalysis: { sentiment: "neutral", ratingEstimate: "4.2/5", summary: "Популярный продукт СНГ рынка." },
-        goalEvaluation: `Оценка под цель: ${userGoal === "lose" ? "Похудение" : userGoal === "gain" ? "Набор массы" : "Поддержание веса"}.`
-      };
-      adjustScoreBasedOnGoal(fallback, userGoal);
-      return res.json({ success: true, data: fallback, source: "sandbox_simulation", noApiKeyWarning: true });
+      return res.status(503).json({
+        success: false,
+        error: language === "uz"
+          ? "AI xizmat sozlanmagan. Administrator OPENAI_API_KEY ni qo'shishi kerak."
+          : "AI-сервис не настроен. Администратор должен добавить OPENAI_API_KEY."
+      });
     }
 
     const systemPrompt = language === "uz"
@@ -358,10 +243,12 @@ app.post("/api/coach", async (req, res) => {
     const { message, history = [], userProfile, language = "ru" } = req.body;
 
     if (!ai) {
-      const reply = language === "uz"
-        ? "Assalomu alaykum! Tizim sandbox rejimida. To'liq AI maslahati uchun OPENAI_API_KEY ni .env ga qo'shing."
-        : "Приложение в демо-режиме. Добавьте OPENAI_API_KEY в файл .env для полноценного AI-коучинга.";
-      return res.json({ success: true, text: reply, source: "sandbox_simulation" });
+      return res.status(503).json({
+        success: false,
+        error: language === "uz"
+          ? "AI xizmat sozlanmagan. Administrator OPENAI_API_KEY ni qo'shishi kerak."
+          : "AI-сервис не настроен. Администратор должен добавить OPENAI_API_KEY."
+      });
     }
 
     const { goal = "maintain", weight = 70, height = 175, age = 25, gender = "male", conditions = "" } = userProfile || {};
@@ -424,48 +311,13 @@ app.post("/api/voice-log", async (req, res) => {
     const userGoal = userProfile?.goal || "maintain";
     const userConditions = userProfile?.conditions || "";
 
-    // Sandbox mode — keyword-based fallback
     if (!ai) {
-      const lower = text.toLowerCase();
-      const detectedItems: any[] = [];
-
-      if (lower.includes("плов") || lower.includes("osh")) {
-        detectedItems.push({
-          productName: language === "uz" ? "Toshkent To'y Oshi" : "Свадебный Плов",
-          weightGrams: 300, calories: 720, protein: 25.5, fat: 36.0, carbs: 73.5, healthScore: 68,
-          cookingMethod: language === "uz"
-            ? "Kamroq qo'y yog'i va ko'proq sabzi bilan tayyorlang."
-            : "Готовьте с меньшим количеством масла и бо́льшим объёмом моркови."
-        });
-      }
-      if (lower.includes("яблоко") || lower.includes("olma")) {
-        detectedItems.push({
-          productName: language === "uz" ? "Yashil Olma" : "Свежее Яблоко",
-          weightGrams: 150, calories: 78, protein: 0.5, fat: 0.3, carbs: 18.5, healthScore: 95,
-          cookingMethod: "Печёное яблоко с корицей — отличный десерт без сахара."
-        });
-      }
-      if (lower.includes("молоко") || lower.includes("sut")) {
-        detectedItems.push({
-          productName: "Sutim Молоко 3.2%",
-          weightGrams: 200, calories: 120, protein: 6.0, fat: 6.4, carbs: 9.4, healthScore: 85,
-          cookingMethod: "Пить холодным или добавлять в цельнозерновые каши."
-        });
-      }
-
-      if (detectedItems.length === 0) {
-        detectedItems.push({
-          productName: text.slice(0, 30) + " (анализ)",
-          weightGrams: 200, calories: 240, protein: 8.0, fat: 6.0, carbs: 35.0, healthScore: 75,
-          cookingMethod: "Готовьте на пару или запекайте для минимизации лишних жиров."
-        });
-      }
-
-      const coachSummary = language === "uz"
-        ? `[SANDBOX] "${text}" tahlil qilindi. To'liq AI uchun OPENAI_API_KEY ni .env ga qo'shing.`
-        : `[ДЕМО-РЕЖИМ] Текст «${text}» распознан. Добавьте OPENAI_API_KEY в .env для реального AI-анализа.`;
-
-      return res.json({ success: true, data: { items: detectedItems, coachSummary }, source: "sandbox_simulation", noApiKeyWarning: true });
+      return res.status(503).json({
+        success: false,
+        error: language === "uz"
+          ? "AI xizmat sozlanmagan. Administrator OPENAI_API_KEY ni qo'shishi kerak."
+          : "AI-сервис не настроен. Администратор должен добавить OPENAI_API_KEY."
+      });
     }
 
     const systemPrompt = `Вы — AI нутрициолог, специалист по кухне СНГ и Узбекистана.

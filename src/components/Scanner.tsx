@@ -1,23 +1,16 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { UserProfile, AnalysisResult, MealLog, AppLanguage } from "../types";
 import { apiFetch } from "../telegram";
-import { 
-  Scan, 
-  Camera, 
-  Upload, 
-  AlertTriangle, 
-  CheckCircle2, 
-  PlusCircle, 
-  Sparkles, 
-  Search, 
-  Info,
-  ChevronRight,
-  TrendingDown,
+import {
+  Scan,
+  Camera,
+  Upload,
+  AlertTriangle,
+  CheckCircle2,
+  PlusCircle,
+  Sparkles,
+  Search,
   Coffee,
-  Heart,
-  HelpCircle,
-  ThumbsUp,
-  Flame,
   UserCheck,
   Mic,
   MicOff,
@@ -34,7 +27,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [useUploadMethod, setUseUploadMethod] = useState<"camera" | "shelf" | "voice">("voice");
+  const [useUploadMethod, setUseUploadMethod] = useState<"camera" | "voice">("voice");
   const [scanResult, setScanResult] = useState<AnalysisResult | null>(null);
   const [loggedAddedAlert, setLoggedAddedAlert] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +36,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
   const [voiceText, setVoiceText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isParsingVoice, setIsParsingVoice] = useState(false);
+  const [pillsSeed, setPillsSeed] = useState(0);
   const [voiceResult, setVoiceResult] = useState<{
     items: Array<{
       productName: string;
@@ -63,10 +57,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       headerTitle: "Сканер рациона & AI Голос",
       headerSubtitle: "Диктуйте рацион на весь день, узнавайте способ приготовления и КБЖУ блюд",
       tabCamera: "Камера / Фото состава",
-      tabShelf: "Супермаркет (Демо)",
       tabVoice: "Голос / Весь день",
-      shelfSectionTitle: "Витрина популярных продуктов (Узбекистан / СНГ)",
-      shelfSectionDesc: "Нажмите на популярный товар в РУз для симуляции реального сканирования состава и авто-расчета БЖУ под вашу цель:",
       uploadPlaceholder: "Нажмите для съемки или выбора фото из галереи",
       analyzeBtn: "Запустить AI Анализ",
       analyzingState: "Идет OCR распознавание состава через Gemini...",
@@ -86,8 +77,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       addedSuccess: "Успешно добавлено в ваш рацион!",
       reScanBtn: "Сканировать другой продукт",
       unsupportedFormat: "Пожалуйста, загрузите изображение.",
-      sandboxWarning: "Внимание: включен Sandbox-режим (демо). Для реального анализа ваших фотографий настройте API-ключ в настройках.",
-      
+
       voicePlaceholder: "Нажмите на микрофон и расскажите, что вы съели (например: 'утром на завтрак плов 200 грамм, в обед яблоко и выпил молоко 3.2%') или введите текст рациона вручную...",
       voiceListening: "Слушаю вас... Говорите",
       voiceParseBtn: "Распознать AI рацион",
@@ -106,10 +96,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       headerTitle: "Ratsion skaneri va AI Ovoz",
       headerSubtitle: "Kunlik ovqatlaringizni ovozli ayting, tayyorlash usuli va KBJU ko'rsatkichlarini bilib oling",
       tabCamera: "Kamera / Tarkib rasmi",
-      tabShelf: "Supermarket (Dem)",
       tabVoice: "Ovoz / Butun kun",
-      shelfSectionTitle: "O'zbekistondagi ommabop mahsulotlar",
-      shelfSectionDesc: "Haqiqiy tahlilni sinab ko'rish uchun O'zbekistondagi oziq-ovqatlardan birini tanlang:",
       uploadPlaceholder: "Kameradan suratga olish yoki galereyadan tanlash",
       analyzeBtn: "AI Tahlilni ishga tushirish",
       analyzingState: "Gemini orqali OCR tarkib tahlil qilinmoqda...",
@@ -129,8 +116,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       addedSuccess: "Ratsioningizga muvaffaqiyatli qo'shildi!",
       reScanBtn: "Yangi mahsulotni skanerlash",
       unsupportedFormat: "Iltimos, rasm formatidagi fayl yuklang.",
-      sandboxWarning: "Diqqat: Sandbox (demo) rejimi faol. Kamera rasmlarini skanerlash uchun Settings bo'limida API kalitni sozlang.",
-      
+
       voicePlaceholder: "Mikrofonni bosing va nimalar iste'mol qilganingizni gapiring (masalan: 'ertalab 200 gramm oshi palov va bit bitta olma yedim, kechqurun sut ichdim') yoki o'zingiz yozing...",
       voiceListening: "Eshityapman... Gapiring",
       voiceParseBtn: "AI tahlilni boshlash",
@@ -147,25 +133,41 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
     }
   }[language];
 
-  // Suggested demo meal sentences for easy typing / tasting
-  const DUST_PILLS = language === "uz" ? [
+  // Pool of suggested meal sentences (rotated on each render seed)
+  const PILL_POOL = language === "uz" ? [
     "ertalab suli bo'tqasi 150g va qora kofe, tushlikda 300g to'y oshi",
     "men bugun go'shtli somsa 2 dona yedim va yashil olma 150g",
-    "bugun yarim kosa sho'rva va lula kabob 150g"
+    "bugun yarim kosa sho'rva va lula kabob 150g",
+    "ertalab 2 ta tuxum omlet va 1 dona non, tushlikda mastava",
+    "tushlikda lag'mon 250g va ko'k choy, kechqurun 200g tvorog",
+    "non 100g, qatiq 200ml va asal 1 osh qoshiq",
+    "kechki ovqat: qovurilgan tovuq 200g va guruch garniri 150g",
+    "ertalab pishloqli sendvich va apelsin sharbati 250ml",
+    "bugun 300g manti va salat achichuk",
+    "tushlikda sho'rva mastava 250g va non 80g",
+    "kechqurun baliq 180g va bug'da pishirilgan sabzavotlar 200g",
+    "kun davomida 2 dona banan, bir hovuch yong'oq va yashil choy"
   ] : [
     "утром овсяная каша 200г и кофе без сахара, в обед плов 300г и салат",
     "я сегодня съел две самсы с мясом и свежее спелое яблоко",
-    "выпил стакан молока 250мл и съел порцию творога 150г"
+    "выпил стакан молока 250мл и съел порцию творога 150г",
+    "на завтрак омлет из 2 яиц с сыром и тост, в обед лагман 300г",
+    "обед: борщ 250г с куском хлеба 60г, на ужин куриная грудка 200г",
+    "перекус: горсть миндаля и зелёное яблоко 150г",
+    "съел шашлык из баранины 250г и греческий салат 200г",
+    "завтрак: гречка с молоком 200г, в обед манты 4 штуки",
+    "выпил протеиновый коктейль 400мл после тренировки и банан",
+    "ужин: запечённая рыба 200г и брокколи на пару 150г",
+    "за день: 2 яблока, кефир 500мл и творожная запеканка 200г",
+    "обед: суп шурпа 300г, лепёшка 100г, зелёный чай"
   ];
 
-  // Simulated supermarket shelf
-  const SHELF_PRODUCTS = [
-    { id: "nestle_sutim", name: "Sutim 3.2% (Молоко)", icon: "🥛", desc: "Узбекское натуральное пакетированное молоко" },
-    { id: "tashkent_osh", name: "Toshkent Oshi (Плов Свадебный)", icon: "🍛", desc: "Традиционная калорийная бомба с говядиной и нутом" },
-    { id: "samarkand_shaurma", name: "Samarqand Go'shtli Lavash", icon: "🌯", desc: "Сытный сочный стрит-фуд в тонком лаваше" },
-    { id: "lays_chips", name: "Lay's Сметана и Зелень", icon: "🥔", desc: "Популярные чипсы с высоким содержанием соли и натрия" },
-    { id: "pepsi_zero", name: "Pepsi Wild Cherry Sugar Free", icon: "🥤", desc: "Замена калорий на аспартам с черничным вкусом" }
-  ];
+  // Pick 3 random distinct items based on the seed (re-rolls when user clicks refresh)
+  const DUST_PILLS = useMemo(() => {
+    const indices = [...PILL_POOL.keys()].sort(() => Math.random() - 0.5).slice(0, 3);
+    return indices.map((i) => PILL_POOL[i]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pillsSeed, language]);
 
   // Run the full stack API scan
   const executeScan = async (uploadedBase64?: string, textQuery?: string) => {
@@ -216,11 +218,6 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const selectShelfItem = (productId: string) => {
-    setImagePreview(null);
-    executeScan(undefined, productId);
   };
 
   const handleAddToDiary = () => {
@@ -396,7 +393,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
 
       {/* Nav toggle tabs */}
       {!scanResult && !isScanning && (
-        <div className="grid grid-cols-3 gap-1.5 bg-brand-panel p-1 rounded-xl border border-brand-border-light">
+        <div className="grid grid-cols-2 gap-1.5 bg-brand-panel p-1 rounded-xl border border-brand-border-light">
           <button
             onClick={() => { setUseUploadMethod("voice"); setErrorMsg(null); }}
             className={`py-2 px-2.5 text-[10px] sm:text-xs font-extrabold rounded-lg transition-all uppercase tracking-wide ${
@@ -406,16 +403,6 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
             }`}
           >
             🎤 {labels.tabVoice}
-          </button>
-          <button
-            onClick={() => { setUseUploadMethod("shelf"); setErrorMsg(null); }}
-            className={`py-2 px-2.5 text-[10px] sm:text-xs font-extrabold rounded-lg transition-all uppercase tracking-wide ${
-              useUploadMethod === "shelf"
-                ? "bg-brand-border-light text-brand-primary shadow-sm"
-                : "text-[#888] hover:text-[#F5F5F7]"
-            }`}
-          >
-            🛒 {labels.tabShelf}
           </button>
           <button
             onClick={() => { setUseUploadMethod("camera"); setErrorMsg(null); }}
@@ -482,16 +469,26 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
 
                 {/* Suggestions Pills */}
                 <div className="space-y-1.5 pt-1">
-                  <div className="text-[9px] text-[#555] font-mono uppercase tracking-wider font-extrabold">
-                    {labels.suggestedPillLabel}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[9px] text-[#555] font-mono uppercase tracking-wider font-extrabold">
+                      {labels.suggestedPillLabel}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPillsSeed((s) => s + 1)}
+                      className="text-[9px] text-[#555] hover:text-brand-primary font-mono uppercase tracking-wider transition-colors px-1.5 py-0.5 rounded"
+                      title={language === "uz" ? "Yangi misollar" : "Новые примеры"}
+                    >
+                      🎲
+                    </button>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {DUST_PILLS.map((pill, i) => (
                       <button
-                        key={i}
+                        key={`${pillsSeed}-${i}`}
                         type="button"
                         onClick={() => setVoiceText(pill)}
-                        className="text-[10px] bg-[#0d0d0d] hover:bg-brand-panel border border-brand-border-light/60 text-[#888] hover:text-brand-primary py-1.5 px-3 rounded-lg transition-all text-left truncate font-medium"
+                        className="text-[10px] bg-[#0d0d0d] hover:bg-brand-panel border border-brand-border-light/60 text-[#888] hover:text-brand-primary py-1.5 px-3 rounded-lg transition-all text-left truncate font-medium animate-fade-in"
                       >
                         ⚡ "{pill}"
                       </button>
@@ -659,7 +656,7 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                 </div>
               )}
             </div>
-          ) : useUploadMethod === "camera" ? (
+          ) : (
             /* Upload layout */
             <div className="text-center">
               <input
@@ -684,38 +681,6 @@ export default function Scanner({ profile, language, onAddMealLog }: ScannerProp
                   Max Limit: 15MB
                 </div>
               </button>
-            </div>
-          ) : (
-            /* Preset Grocery Shelf simulated scan */
-            <div className="bg-brand-card border border-brand-border p-5 rounded-2xl text-left space-y-4 shadow-xl">
-              <div>
-                <h3 className="text-sm font-bold text-white tracking-tight">{labels.shelfSectionTitle}</h3>
-                <p className="text-xs text-[#888] mt-1 leading-normal">
-                  {labels.shelfSectionDesc}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                {SHELF_PRODUCTS.map((prod) => (
-                  <button
-                    key={prod.id}
-                    onClick={() => selectShelfItem(prod.id)}
-                    disabled={isScanning}
-                    className="w-full bg-[#0A0A0A]/50 hover:bg-brand-panel border border-brand-border p-3 rounded-xl flex items-center justify-between text-left transition-all group"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-10 h-10 bg-brand-panel rounded-lg flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform select-none">
-                        {prod.icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-[#F5F5F7] group-hover:text-brand-primary transition-colors">{prod.name}</div>
-                        <div className="text-xs text-[#555] truncate mt-0.5">{prod.desc}</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-brand-primary transition-colors" />
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
