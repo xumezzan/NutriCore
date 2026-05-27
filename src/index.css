@@ -37,6 +37,11 @@
   }
 }
 
+@keyframes splashProgress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
 /* Safe-area defaults — overridden by JS when running inside Telegram. */
 :root {
   --tg-safe-top: 0px;

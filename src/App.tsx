@@ -37,6 +37,7 @@ export default function App() {
   const [mealLogs, setMealLogs] = useState<MealLog[]>([]);
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
 
   const [isThinking, setIsThinking] = useState(false);
 
@@ -48,6 +49,8 @@ export default function App() {
         storage.getItem("sc_user_profile"),
         storage.getItem("sc_meal_logs"),
         storage.getItem("sc_coach_messages"),
+        // Enforce minimum 2-second splash so the greeting is readable
+        new Promise((r) => setTimeout(r, 2000)),
       ]);
       if (cancelled) return;
 
@@ -70,6 +73,7 @@ export default function App() {
         try { setMessages(JSON.parse(c)); } catch {}
       }
       setHydrated(true);
+      setSplashDone(true);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -268,26 +272,41 @@ export default function App() {
 
       {/* Main Container Wrapper */}
       <main className="flex-1 w-full max-w-md mx-auto px-4 py-5 scroll-smooth">
-        {!hydrated ? (
-          <div className="min-h-[75vh] flex flex-col items-center justify-center gap-6 animate-fade-in">
+        {!splashDone ? (
+          <div className="min-h-[75vh] flex flex-col items-center justify-center gap-8 animate-fade-in">
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-brand-primary flex items-center justify-center text-black font-extrabold text-2xl shadow-2xl shadow-brand-primary/30">
+              <div className="w-24 h-24 rounded-3xl bg-brand-primary flex items-center justify-center text-black font-extrabold text-3xl shadow-2xl shadow-brand-primary/40">
                 NC
               </div>
               <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-primary rounded-full animate-ping opacity-60" />
             </div>
-            <div className="text-center space-y-1.5">
+
+            <div className="text-center space-y-2">
+              <p className="text-[10px] text-brand-primary font-mono uppercase tracking-widest">NutriCore AI · Unicorn Pro</p>
               {tg?.initDataUnsafe?.user?.first_name ? (
-                <h2 className="text-xl font-black text-white">
+                <h2 className="text-2xl font-black text-white leading-tight">
                   {language === "uz" ? "Xush kelibsiz" : "Добро пожаловать"},{" "}
                   <span className="text-brand-primary">{tg.initDataUnsafe.user.first_name}</span>!
                 </h2>
               ) : (
-                <h2 className="text-xl font-black text-white">NutriCore AI</h2>
+                <h2 className="text-2xl font-black text-white">NutriCore AI</h2>
               )}
-              <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest flex items-center justify-center gap-1.5">
+              <p className="text-xs text-zinc-500">
+                {language === "uz" ? "Shaxsiy AI dietolog va fitnes coach" : "Персональный AI нутрициолог и фитнес-коуч"}
+              </p>
+            </div>
+
+            {/* Animated progress bar — fills over 2 seconds */}
+            <div className="w-56 space-y-2">
+              <div className="h-1 bg-brand-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand-primary rounded-full"
+                  style={{ animation: "splashProgress 2s cubic-bezier(0.4,0,0.2,1) forwards" }}
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 font-mono text-center uppercase tracking-widest flex items-center justify-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-brand-primary" />
-                {language === "uz" ? "Yuklanmoqda..." : "Загрузка..."}
+                {language === "uz" ? "Sozlanmoqda..." : "Настраивается..."}
               </p>
             </div>
           </div>
