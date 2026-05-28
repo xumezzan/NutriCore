@@ -102,7 +102,9 @@ export default function App() {
 
   useEffect(() => {
     if (!hydrated) return;
-    storage.setItem("sc_coach_messages", JSON.stringify(messages));
+    // Keep only the last 50 messages to stay well within CloudStorage limits.
+    const toSave = messages.length > 50 ? messages.slice(-50) : messages;
+    storage.setItem("sc_coach_messages", JSON.stringify(toSave));
   }, [messages, hydrated]);
 
   // Seed the first greeting only after hydration, so we don't overwrite

@@ -151,49 +151,98 @@ export function apiFetch(input: string, init: RequestInit = {}): Promise<Respons
 
 // Promise-style CloudStorage with a localStorage fallback when running outside
 // Telegram or on a client too old to support CloudStorage.
+//
+// Telegram CloudStorage has a hard 4096-byte-per-key limit. For larger values
+// we split into numbered chunks: key__0, key__1, … and store the chunk count
+// under key__n. On read we detect the presence of key__n and reassemble.
+const CS_CHUNK_SIZE = 3800; // stay safely below 4096
+
+function csSetRaw(cs: TgCloudStorage, key: string, value: string): Promise<void> {
+  return new Promise((resolve) => { cs.setItem(key, value, () => resolve()); });
+}
+function csGetRaw(cs: TgCloudStorage, key: string): Promise<string> {
+  return new Promise((resolve) => {
+    cs.getItem(key, (_err, val) => resolve(val ?? ""));
+  });
+}
+function csRemoveRaw(cs: TgCloudStorage, key: string): Promise<void> {
+  return new Promise((resolve) => { cs.removeItem(key, () => resolve()); });
+}
+
+async function csSetChunked(cs: TgCloudStorage, key: string, value: string): Promise<void> {
+  // Split UTF-16 string into chunks that stay within byte limit when encoded.
+  // We chunk by character count; each char is at most 3 bytes in UTF-8.
+  const chunkChars = Math.floor(CS_CHUNK_SIZE / 3);
+  const chunks: string[] = [];
+  for (let i = 0; i < value.length; i += chunkChars) {
+    chunks.push(value.slice(i, i + chunkChars));
+  }
+  if (chunks.length === 1) {
+    // Fits in one key — no chunking needed, write directly and clear any old chunks.
+    await csSetRaw(cs, key, value);
+    await csRemoveRaw(cs, `${key}__n`);
+    return;
+  }
+  // Write chunks in parallel, then write the count marker last.
+  await Promise.all(chunks.map((chunk, i) => csSetRaw(cs, `${key}__${i}`, chunk)));
+  await csSetRaw(cs, `${key}__n`, String(chunks.length));
+  // Clear the un-chunked key so old data doesn't interfere.
+  await csRemoveRaw(cs, key);
+}
+
+async function csGetChunked(cs: TgCloudStorage, key: string): Promise<string | null> {
+  const nStr = await csGetRaw(cs, `${key}__n`);
+  if (nStr && nStr !== "") {
+    const n = parseInt(nStr, 10);
+    if (!isNaN(n) && n > 1) {
+      const chunks = await Promise.all(
+        Array.from({ length: n }, (_, i) => csGetRaw(cs, `${key}__${i}`))
+      );
+      const assembled = chunks.join("");
+      return assembled || null;
+    }
+  }
+  // No chunk marker — try the plain key.
+  const plain = await csGetRaw(cs, key);
+  return plain || null;
+}
+
+async function csRemoveChunked(cs: TgCloudStorage, key: string): Promise<void> {
+  const nStr = await csGetRaw(cs, `${key}__n`);
+  const ops: Promise<void>[] = [csRemoveRaw(cs, key), csRemoveRaw(cs, `${key}__n`)];
+  if (nStr && nStr !== "") {
+    const n = parseInt(nStr, 10);
+    if (!isNaN(n)) {
+      for (let i = 0; i < n; i++) ops.push(csRemoveRaw(cs, `${key}__${i}`));
+    }
+  }
+  await Promise.all(ops);
+}
+
 export const storage = {
   async getItem(key: string): Promise<string | null> {
     const cs = tg?.CloudStorage;
     if (cs) {
-      return new Promise((resolve) => {
-        cs.getItem(key, (err, value) => {
-          if (err || value == null || value === "") {
-            resolve(localStorage.getItem(key));
-          } else {
-            resolve(value);
-          }
-        });
-      });
+      const val = await csGetChunked(cs, key);
+      if (val != null) return val;
+      // CloudStorage had nothing — try localStorage as migration fallback.
+      try { return localStorage.getItem(key); } catch { return null; }
     }
-    return localStorage.getItem(key);
+    try { return localStorage.getItem(key); } catch { return null; }
   },
 
   async setItem(key: string, value: string): Promise<void> {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      // localStorage may throw in private mode — ignore, CloudStorage may still work.
-    }
+    // Always mirror to localStorage as a best-effort local cache.
+    try { localStorage.setItem(key, value); } catch {}
     const cs = tg?.CloudStorage;
     if (!cs) return;
-    // Telegram CloudStorage has a 4096-byte per-value limit. Skip writes above
-    // that to avoid silent failures; localStorage already has the data.
-    if (new Blob([value]).size > 4096) return;
-    return new Promise((resolve) => {
-      cs.setItem(key, value, () => resolve());
-    });
+    await csSetChunked(cs, key, value);
   },
 
   async removeItem(key: string): Promise<void> {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // ignore
-    }
+    try { localStorage.removeItem(key); } catch {}
     const cs = tg?.CloudStorage;
     if (!cs) return;
-    return new Promise((resolve) => {
-      cs.removeItem(key, () => resolve());
-    });
+    await csRemoveChunked(cs, key);
   },
 };
